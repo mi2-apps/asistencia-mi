@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+drizzle
+.pm2
+*.log
+.DS_Store
