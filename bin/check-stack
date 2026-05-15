@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""check-stack — validate an MI Apps repo against the 8/8 stack-conformance check.
+
+Same 8 checks the deploy bot runs on coolify-01. Run this in your repo BEFORE
+replying 'pushed' to the bot; if it doesn't say 8/8 here, the bot will reject.
+
+Usage:
+    check-stack              # check current directory
+    check-stack /path/to/repo
+    check-stack --json       # machine-readable output
+
+Exit code: 0 if 8/8, 1 if not. Works on Python 3.8+. No external deps.
+
+Reference: https://apps.mi2.com.mx/launch (Stack section)
+Mirror of: ~/.config/coolify-bot/check_stack_conformance.py on coolify-01
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="check-stack", description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("path", nargs="?", default=".", help="repo root (default: cwd)")
+    ap.add_argument("--json", action="store_true", help="emit JSON instead of human-readable")
+    ap.add_argument("--no-color", action="store_true", help="suppress ANSI colors")
+    args = ap.parse_args()
+
+    root = Path(args.path).resolve()
+    if not root.is_dir():
+        print(f"check-stack: not a directory: {root}", file=sys.stderr)
+        return 2
+
+    color = sys.stdout.isatty() and not args.no_color
+    GREEN = "\033[32m" if color else ""
+    RED = "\033[31m" if color else ""
+    DIM = "\033[2m" if color else ""
+    BOLD = "\033[1m" if color else ""
+    RESET = "\033[0m" if color else ""
+
+    def has_file(*names: str) -> Path | None:
+        for n in names:
+            p = root / n
+            if p.is_file():
+                return p
+        return None
+
+    # package.json deps (top-level + dev)
+    pkg_path = root / "package.json"
+    pkg_deps: set[str] = set()
+    pkg_err = None
+    if pkg_path.is_file():
+        try:
+            pkg = json.loads(pkg_path.read_text())
+            pkg_deps = set((pkg.get("dependencies") or {}).keys()) | set((pkg.get("devDependencies") or {}).keys())
+        except Exception as e:
+            pkg_err = str(e)
+
+    procfile = has_file("Procfile")
+    procfile_pm2 = bool(procfile and "pm2" in procfile.read_text(errors="replace").lower())
+
+    checks = [
+        ("React 18",
+         "package.json depends on 'react'",
+         "react" in pkg_deps),
+        ("TypeScript",
+         "tsconfig.json present",
+         has_file("tsconfig.json") is not None),
+        ("Vite",
+         "vite.config.ts or vite.config.js present",
+         has_file("vite.config.ts", "vite.config.js", "vite.config.mts") is not None),
+        ("Tailwind",
+         "tailwind.config.ts or tailwind.config.js present",
+         has_file("tailwind.config.ts", "tailwind.config.js", "tailwind.config.cjs", "tailwind.config.mjs") is not None),
+        ("Express",
+         "package.json depends on 'express'",
+         "express" in pkg_deps),
+        ("Drizzle",
+         "drizzle.config.ts or drizzle.config.js present",
+         has_file("drizzle.config.ts", "drizzle.config.js", "drizzle.config.cjs", "drizzle.config.mjs") is not None),
+        ("PostgreSQL",
+         "package.json depends on 'pg' or 'postgres'",
+         ("pg" in pkg_deps) or ("postgres" in pkg_deps)),
+        ("PM2",
+         "package.json depends on 'pm2' OR Procfile mentions pm2",
+         ("pm2" in pkg_deps) or procfile_pm2),
+    ]
+
+    score = sum(1 for _, _, ok in checks if ok)
+    total = len(checks)
+    passed = (score == total)
+
+    if args.json:
+        out = {
+            "path": str(root),
+            "score": f"{score}/{total}",
+            "passed": passed,
+            "found": [{"name": n, "rule": r} for n, r, ok in checks if ok],
+            "missing": [{"name": n, "rule": r} for n, r, ok in checks if not ok],
+        }
+        if not pkg_path.is_file():
+            out["notes"] = ["package.json missing at repo root — stack requires a Node-based app"]
+        elif pkg_err:
+            out["notes"] = [f"package.json parse error: {pkg_err}"]
+        print(json.dumps(out, indent=2))
+        return 0 if passed else 1
+
+    print(f"{BOLD}MI Apps stack conformance — {root}{RESET}")
+    print()
+    for name, rule, ok in checks:
+        mark = f"{GREEN}✅{RESET}" if ok else f"{RED}❌{RESET}"
+        print(f"  {mark} {name:14} {DIM}— {rule}{RESET}")
+    print()
+    color_tag = GREEN if passed else RED
+    verdict = "READY TO PUSH" if passed else "NOT READY — fix the ❌ items before replying 'pushed'"
+    print(f"  {BOLD}Score: {color_tag}{score}/{total}{RESET}{BOLD} — {verdict}{RESET}")
+
+    if not pkg_path.is_file():
+        print(f"\n  {RED}note:{RESET} package.json missing at repo root.")
+        print(f"  {DIM}Stack requires a Node-based app. Python/FastAPI/Django not allowed for new apps.{RESET}")
+    elif pkg_err:
+        print(f"\n  {RED}note:{RESET} package.json parse error: {pkg_err}")
+
+    if not passed:
+        print(f"\n  {DIM}Shortcut: clone https://github.com/mi2-apps/stack-template{RESET}")
+        print(f"  {DIM}or copy the missing config files from any 8/8 mi2-apps repo.{RESET}")
+
+    return 0 if passed else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
