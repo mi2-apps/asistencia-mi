@@ -29,6 +29,27 @@ Default port: 7000 (matches MI Manifest convention).
 3. After Amir approves, push your code to the repo the bot created, reply `pushed`,
    and the deploy bot will launch you at `https://<your-app>.mi2.com.mx`.
 
+## Validate before pushing
+
+This template ships with `bin/check-stack`, the same conformance script the deploy
+bot runs. Use it locally to catch issues before replying `pushed`:
+
+```bash
+./bin/check-stack                # check current repo (8/8 if you haven't broken anything)
+./bin/check-stack /path/to/repo  # or check another path
+./bin/check-stack --json         # machine-readable output for CI
+```
+
+Exit 0 means ready; exit 1 prints the missing items. Pure Python 3.8+, no deps.
+
+Or fetch it standalone from the launch page:
+
+```bash
+curl -sSL https://apps.mi2.com.mx/launch/check-stack -o /tmp/check-stack
+chmod +x /tmp/check-stack && /tmp/check-stack
+```
+
+
 ## Required env vars (set in Coolify UI after launch)
 
 - `DATABASE_URL` — Postgres connection string. The bot auto-injects this if you
