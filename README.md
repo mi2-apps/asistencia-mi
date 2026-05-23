@@ -78,3 +78,32 @@ If your app genuinely can't fit the stack (e.g. you need a Python library that
 has no Node equivalent), request an exception in your deployment email. The
 bot will block your launch otherwise; the rejection email lists the missing
 pieces.
+
+## Spec-Driven Development (SDD)
+
+This template ships pre-configured with [GitHub Spec Kit](https://github.com/github/spec-kit).
+The MI Apps stack-wide constitution lives at `.specify/memory/constitution.md` — Claude Code
+consults it before every spec/plan/implement cycle.
+
+Workflow:
+
+```
+/speckit-specify       # describe what to build (functional, not technical)
+/speckit-plan          # architecture aligned with the constitution
+/speckit-clarify       # resolve ambiguities (optional, recommended)
+/speckit-tasks         # break plan into ordered tasks
+/speckit-implement     # execute the tasks, open PR
+```
+
+Skills install at `.claude/skills/speckit-*/SKILL.md`. To bootstrap a fresh app from this
+template, after cloning:
+
+```bash
+# Install the CLI once per machine (Python 3.11+, uv)
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+
+# In your app repo:
+specify init . --ai claude --force      # already done in this template
+```
+
+See https://apps.mi2.com.mx/stack#sdd for the full pattern and rationale.
