@@ -33,6 +33,13 @@ provision-app-sso <slug>
 Apps store `oidc_sub` on the users table and dedupe by email. Sessions persist in
 Postgres via `connect-pg-simple`.
 
+**User-facing identity URLs** — link to these from your UI, do NOT build app-local equivalents:
+- **Password reset:** `https://cloud.miglobal.com.mx/apps/user_backend_sql_raw/reset-password`
+  — wire into your "Forgot password?" link. The provisioner response includes this as
+  `password_reset_url` on every reply; read it from the payload rather than hardcoding.
+- **Welcome landing for newly migrated users:** `https://cloud.miglobal.com.mx/migrated`
+  — covers Talk, Files, Calendar, Mail+AI, phone + computer setup.
+
 See: https://apps.mi2.com.mx/stack#sso
 
 ### III. Trilingual UI (HARD RULE)
