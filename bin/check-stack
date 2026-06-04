@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""check-stack — validate an MI Apps repo against the 8/8 stack-conformance check.
+"""check-stack — validate an MI Apps repo against the 9/9 stack-conformance check.
 
-Same 8 checks the deploy bot runs on coolify-01. Run this in your repo BEFORE
-replying 'pushed' to the bot; if it doesn't say 8/8 here, the bot will reject.
+Same 9 checks the deploy bot runs on coolify-01. Run this in your repo BEFORE
+replying 'pushed' to the bot; if it doesn't say 9/9 here, the bot will reject.
 
 Usage:
     check-stack              # check current directory
     check-stack /path/to/repo
     check-stack --json       # machine-readable output
 
-Exit code: 0 if 8/8, 1 if not. Works on Python 3.8+. No external deps.
+Exit code: 0 if 9/9, 1 if not. Works on Python 3.8+. No external deps.
 
 Reference: https://apps.mi2.com.mx/launch (Stack section)
 Mirror of: ~/.config/coolify-bot/check_stack_conformance.py on coolify-01
@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -43,26 +44,78 @@ def main() -> int:
     BOLD = "\033[1m" if color else ""
     RESET = "\033[0m" if color else ""
 
+    SKIP_DIRS = {"node_modules", "dist", "build", ".next", ".nuxt", ".git", "coverage", ".turbo"}
+
+    def keep(p: Path) -> bool:
+        return not any(part in SKIP_DIRS for part in p.parts)
+
     def has_file(*names: str) -> Path | None:
+        # Tree-wide: monorepos keep config in subdirs (frontend/, backend/, …),
+        # so check the root first, then anywhere in the tree.
         for n in names:
             p = root / n
             if p.is_file():
                 return p
+        for n in names:
+            for p in root.rglob(n):
+                if p.is_file() and keep(p):
+                    return p
         return None
 
-    # package.json deps (top-level + dev)
-    pkg_path = root / "package.json"
+    # package.json deps merged across the WHOLE tree (root + every subdir).
+    # Monorepos (frontend/ + backend/) keep an empty/minimal root package.json
+    # with the real deps in subfolders — root-only scoring falsely reports 0/9.
     pkg_deps: set[str] = set()
     pkg_err = None
-    if pkg_path.is_file():
+    pkg_found = False
+    for pp in root.rglob("package.json"):
+        if not keep(pp):
+            continue
+        pkg_found = True
         try:
-            pkg = json.loads(pkg_path.read_text())
-            pkg_deps = set((pkg.get("dependencies") or {}).keys()) | set((pkg.get("devDependencies") or {}).keys())
+            pkg = json.loads(pp.read_text())
+            pkg_deps |= set((pkg.get("dependencies") or {}).keys()) | set((pkg.get("devDependencies") or {}).keys())
         except Exception as e:
             pkg_err = str(e)
 
     procfile = has_file("Procfile")
     procfile_pm2 = bool(procfile and "pm2" in procfile.read_text(errors="replace").lower())
+
+    # Mobile-ready check (added 2026-06-02): every new app must work on mobile.
+    # Two signals — either is sufficient (some apps put HTML in client/, some
+    # only ship it post-build via Vite):
+    #   (a) <meta name="viewport"> in any entry HTML file
+    #   (b) responsive Tailwind class (sm:/md:/lg:/xl:/2xl:) used somewhere in source
+    viewport_re = re.compile(r'<meta\s+name=["\']viewport["\']', re.IGNORECASE)
+    resp_re = re.compile(r'\b(sm|md|lg|xl|2xl):[a-z]')
+
+    mobile_ok = False
+    for p in root.rglob("*.html"):
+        if not keep(p):
+            continue
+        try:
+            if viewport_re.search(p.read_text(errors="replace")[:50000]):
+                mobile_ok = True
+                break
+        except Exception:
+            continue
+    if not mobile_ok:
+        scanned = 0
+        for pattern in ("*.tsx", "*.jsx", "*.html", "*.css", "*.ts", "*.js"):
+            if mobile_ok:
+                break
+            for p in root.rglob(pattern):
+                if not keep(p):
+                    continue
+                try:
+                    if resp_re.search(p.read_text(errors="replace")[:200000]):
+                        mobile_ok = True
+                        break
+                except Exception:
+                    pass
+                scanned += 1
+                if scanned > 400:
+                    break
 
     checks = [
         ("React 18",
@@ -89,6 +142,9 @@ def main() -> int:
         ("PM2",
          "package.json depends on 'pm2' OR Procfile mentions pm2",
          ("pm2" in pkg_deps) or procfile_pm2),
+        ("Mobile-ready",
+         "viewport meta tag in entry HTML OR responsive Tailwind class (sm:/md:/lg:) used",
+         mobile_ok),
     ]
 
     score = sum(1 for _, _, ok in checks if ok)
@@ -103,7 +159,7 @@ def main() -> int:
             "found": [{"name": n, "rule": r} for n, r, ok in checks if ok],
             "missing": [{"name": n, "rule": r} for n, r, ok in checks if not ok],
         }
-        if not pkg_path.is_file():
+        if not pkg_found:
             out["notes"] = ["package.json missing at repo root — stack requires a Node-based app"]
         elif pkg_err:
             out["notes"] = [f"package.json parse error: {pkg_err}"]
@@ -120,7 +176,7 @@ def main() -> int:
     verdict = "READY TO PUSH" if passed else "NOT READY — fix the ❌ items before replying 'pushed'"
     print(f"  {BOLD}Score: {color_tag}{score}/{total}{RESET}{BOLD} — {verdict}{RESET}")
 
-    if not pkg_path.is_file():
+    if not pkg_found:
         print(f"\n  {RED}note:{RESET} package.json missing at repo root.")
         print(f"  {DIM}Stack requires a Node-based app. Python/FastAPI/Django not allowed for new apps.{RESET}")
     elif pkg_err:
@@ -128,7 +184,7 @@ def main() -> int:
 
     if not passed:
         print(f"\n  {DIM}Shortcut: clone https://github.com/mi2-apps/stack-template{RESET}")
-        print(f"  {DIM}or copy the missing config files from any 8/8 mi2-apps repo.{RESET}")
+        print(f"  {DIM}or copy the missing config files from any 9/9 mi2-apps repo.{RESET}")
 
     return 0 if passed else 1
 
