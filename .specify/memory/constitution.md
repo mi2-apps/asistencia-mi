@@ -40,6 +40,13 @@ Postgres via `connect-pg-simple`.
 - **Welcome landing for newly migrated users:** `https://cloud.miglobal.com.mx/migrated`
   — covers Talk, Files, Calendar, Mail+AI, phone + computer setup.
 
+**Dual-domain email alias (HARD RULE).** Nextcloud OIDC may emit either
+`@miglobal.com.mx` OR `@mitechnologiesinc.com` for the SAME logical user. Any per-user
+authorization gate (`allowed_users`, superuser set, admin allowlist) MUST treat the two
+as equivalent — use `canonicalizeEmail()` + `allDomainVariants()` from `shared/email-alias.ts`,
+never compare the raw OIDC email to a single stored string. Personal addresses (gmail, etc.)
+are NEVER valid SSO identities — MI-domain accounts only. See: https://apps.mi2.com.mx/stack#email-alias
+
 See: https://apps.mi2.com.mx/stack#sso
 
 ### III. Trilingual UI (HARD RULE)
