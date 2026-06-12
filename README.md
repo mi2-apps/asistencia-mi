@@ -107,3 +107,17 @@ specify init . --ai claude --force      # already done in this template
 ```
 
 See https://apps.mi2.com.mx/stack#sdd for the full pattern and rationale.
+
+## Optional modules
+
+Drop-in modules you can add to an app built from this template. They are **not** wired
+in by default (they require per-app edits) — copy from `modules/<name>/` into your app
+and follow that module's README.
+
+| Module | What it adds | Stack ref |
+|---|---|---|
+| [`modules/talk-to-your-data`](modules/talk-to-your-data/README.md) | "Talk to your data" conversational analytics — NL → read-only SQL → grounded answers + inline charts/KPIs + shareable temporary dashboards, behind your SSO. Multilingual (en/es-MX/zh-CN), mobile-optimized. Battle-tested in trgdata. | [§14c](https://apps.mi2.com.mx/stack#data-chat) |
+
+Each module ships its own `README.md` (install guide) and, where relevant, a guide for the
+parts you must customize — e.g. `talk-to-your-data` includes `SCHEMA-CARD-GUIDE.md` (the
+data dictionary is the **#1 determinant of answer quality** — read it before shipping).

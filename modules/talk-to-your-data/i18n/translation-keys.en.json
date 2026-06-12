@@ -1,0 +1,33 @@
+{
+  "_comment": "Merge these flat keys into client/public/locales/en/translation.json, then translate copies into es-MX/translation.json and zh-CN/translation.json. The chat agent already replies in the user's detected language at runtime; these keys localize the static UI chrome (buttons, placeholders, notices). The {{page}}, {{d}}, {{f}} are i18next interpolations — keep them.",
+
+  "nav.chat": "Data Chat",
+  "chat.subtitle": "Ask questions, build charts, and create temporary pages",
+  "chat.notConfigured": "Data Chat is not configured yet — an OpenRouter API key (OPENROUTER_API_KEY) must be set in Coolify.",
+  "chat.empty": "Talk to the data. Ask a question, request a chart, or have me build a page.",
+  "chat.placeholder": "Ask about your data…",
+  "chat.thinking": "Thinking…",
+  "chat.unavailable": "Chat is unavailable right now.",
+  "chat.filtered": "Filtered {{page}}",
+  "chat.pageLink": "Temporary page — opens live",
+  "chat.expires": "expires {{d}}",
+  "chat.back": "Back to Data Chat",
+  "chat.suggest.1": "Revenue by channel for 2025 as a bar chart",
+  "chat.suggest.2": "Who are the top 10 customers by total order value?",
+  "chat.suggest.3": "Build a summary landing page for last quarter",
+  "chat.newChat": "New chat",
+  "chat.history": "Chat history",
+  "chat.reconnecting": "Connection dropped — recovering the answer…",
+  "chat.recoverFailed": "Couldn't recover automatically. Your answer is saved — reopen this chat from history in a moment.",
+  "chat.connLost": "Connection lost before the chat started — please resend.",
+
+  "temp.notFound": "This page has expired or doesn’t exist.",
+  "temp.expires": "Expires {{d}}",
+  "temp.extend": "Extend 30 days",
+  "temp.openChat": "Open chat",
+  "temp.refine": "Refine",
+  "temp.refinePlaceholder": "Refine this dashboard… e.g. \"only last 30 days\" or \"only Texas\"",
+  "temp.filteredBy": "Filtered: {{f}}",
+  "temp.refineNote": "(this view only — original is unchanged)",
+  "temp.refining": "Refining the dashboard…"
+}
