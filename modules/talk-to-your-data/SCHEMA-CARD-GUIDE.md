@@ -14,6 +14,31 @@ The agent *also* has live `list_tables` / `describe_schema` tools (authoritative
 `information_schema`), so the card doesn't need every column — it needs the **judgment** that
 introspection can't give: which table to use, what the quirks are, and where data really lives.
 
+## Source of truth: pull from your Developer Manual (stack §14d)
+
+Don't invent the card from memory. If your app (or a sibling MI app) has a **Developer Manual**
+(the [`developer-manual`](../developer-manual/README.md) module / stack
+[§14d](https://apps.mi2.com.mx/stack#dev-manual)), that is your authoritative source for everything
+in the checklist below — it already documents, per table/column: plain-English meaning, units/format
+quirks, nullability, FKs, allowed values, and sample queries. The schema card is the **tight,
+prompt-resident distillation** of that manual: the manual is exhaustive and lives in the DB; the card
+is the ~1-page judgment layer that rides in the prompt every turn.
+
+- **Writing the card:** query the manual instead of guessing. Over its agent/MCP API —
+  `overview` + `list_tables` for the routing map (§2), `get_table`/`find_field` for the quirks and
+  real types (§1/§3), `search` for "where does X live" (§5). The canonical MI AI Manifest instance is
+  at `https://manifest.miglobal.com.mx/api/v1/external/developer-manual/*` (+ MCP at `…/mcp`) — ask
+  #coolify-ops for a read-only `developer_manual: read` key, or point at your own app's manual.
+- **Keep them in sync:** the manual carries the §14d *maintenance mandate* (update it in the same
+  change as any schema/architecture change). Treat the schema card as a derived view of the manual —
+  when the manual changes a money/date convention or adds a table, refresh the matching card line in
+  the same PR. A card that drifts from the manual reintroduces exactly the false "gaps" both exist to
+  prevent.
+
+If you have **no** Developer Manual yet, write the card from first-hand DB knowledge using the
+checklist below — and consider standing up the §14d module so the next person (or agent) inherits the
+ground truth instead of re-deriving it.
+
 ## The checklist
 
 A complete card has five sections. Work through each:
