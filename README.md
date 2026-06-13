@@ -117,6 +117,7 @@ and follow that module's README.
 | Module | What it adds | Stack ref |
 |---|---|---|
 | [`modules/talk-to-your-data`](modules/talk-to-your-data/README.md) | "Talk to your data" conversational analytics — NL → read-only SQL → grounded answers + inline charts/KPIs + shareable temporary dashboards, behind your SSO. Multilingual (en/es-MX/zh-CN), mobile-optimized. Battle-tested in trgdata. | [§14c](https://apps.mi2.com.mx/stack#data-chat) |
+| [`modules/developer-manual`](modules/developer-manual/README.md) | Developer Manual — a versioned, queryable definition of your app's data model (Markdown pages + a structured data dictionary) so agents answer from ground truth. Session API + agent/Bearer API + **MCP server** (6 read tools) + admin/supervisor UI; scoped-key auth, revision history, `If-Match`→409. Extracted from MI AI Manifest. | [§14d](https://apps.mi2.com.mx/stack#dev-manual) |
 
 Each module ships its own `README.md` (install guide) and, where relevant, a guide for the
 parts you must customize — e.g. `talk-to-your-data` includes `SCHEMA-CARD-GUIDE.md` (the

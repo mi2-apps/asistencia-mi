@@ -1,0 +1,21 @@
+{
+  "domainKey": "users-example",
+  "title": "Users (EXAMPLE)",
+  "tables": [
+    {
+      "name": "users",
+      "purpose": "User accounts and their access level. One row per person who can log in.",
+      "columns": [
+        { "name": "id", "type": "varchar (uuid)", "nullable": false, "meaning": "Primary key", "references": "referenced by most *_created_by columns", "allowedValues": null, "notes": "DB-generated UUID" },
+        { "name": "username", "type": "varchar(50)", "nullable": false, "meaning": "Login handle", "references": null, "allowedValues": "unique", "notes": "" },
+        { "name": "role", "type": "varchar(20)", "nullable": false, "meaning": "Access level — what the user may do", "references": null, "allowedValues": "admin | supervisor | user", "notes": "drives RBAC" },
+        { "name": "created_at", "type": "timestamp", "nullable": true, "meaning": "When the account was created", "references": null, "allowedValues": null, "notes": "defaults to now()" }
+      ],
+      "foreignKeys": [],
+      "sampleQueries": [
+        { "description": "All admins", "sql": "SELECT id, username FROM users WHERE role = 'admin';" },
+        { "description": "Count by role", "sql": "SELECT role, count(*) FROM users GROUP BY role;" }
+      ]
+    }
+  ]
+}
