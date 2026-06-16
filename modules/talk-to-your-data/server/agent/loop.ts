@@ -13,6 +13,7 @@ import { runAgentSql } from "./sql-guard.js";
 import { SCHEMA_CARD, describeTable, listTables } from "./schema-card.js";
 import { validateBlock, resolveBlock, type Block } from "./blocks.js";
 import { createPage } from "./pages-store.js";
+import { checkPageRender } from "./render-check.js"; // post-create render verification (see README §Render-check)
 
 export type AgentEvent =
   | { type: "token"; text: string }
@@ -80,7 +81,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "render_block",
-      description: "Render ONE visual inline in the chat (kpi/kpis/chart/table/markdown). The server runs the block's SQL and renders it — you do NOT need the rows. Use after you've confirmed the SQL works with run_sql.",
+      description: "Render ONE visual inline in the chat (kpi/kpis/chart/table/markdown). MINIMAL INPUT: just {kind, sql} — the server runs the SQL and AUTO-INFERS chart axes (xKey/series), table columns, and KPI value from the result columns (pass them only to override). You do NOT need the rows back. ALWAYS use this when the user asks for a graph/chart/KPI/table/'show'/'visualize' — never answer a visual request with prose alone.",
       parameters: BLOCK_SCHEMA,
     },
   },
@@ -88,7 +89,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "create_page",
-      description: "Create a temporary shareable landing page from several blocks and give the user its link. Pages render LIVE (SQL re-runs on view) and expire (default 30 days, or 7).",
+      description: "Create a temporary shareable landing page and give the user its link. BEST FLOW: render_block each visual FIRST, then call create_page — if you omit 'blocks' it reuses the visuals you just rendered this turn. Always pass a 'title'. When you give the user the link, use the EXACT 'url' returned (full canonical https link) — never invent or change the domain. Pages render LIVE and expire (default 30 days, or 7).",
       parameters: {
         type: "object",
         properties: {
@@ -160,7 +161,17 @@ RULES
   query. Do NOT run "SELECT DISTINCT col …" to explore values — that full-scans the table and
   times out. Filter and aggregate in the same query. If a query times out, make it simpler/
   narrower — don't retry slight variants.
-- Verify a query with run_sql before render_block/create_page. Be concise: when you render visuals
+- Verify a query with run_sql before render_block/create_page.
+- VISUALS (CRITICAL): when the user asks for a graph/chart/KPI/table or says "show me"/"visualize", you
+  MUST call render_block — kind + sql is enough (axes/columns/value auto-inferred). Never satisfy a
+  visual request with prose only, and never skip to create_page without rendering.
+- SELF-CHECK before you say it's ready: a visual/page is ready ONLY if render_block reported rows>0 and
+  no error (the tool result tells you). If it reports 0 rows or an error, FIX the SQL and render again —
+  never end your turn presenting an empty or failed chart/KPI/page as the answer. create_page drops
+  empty/failed blocks automatically; if it returns "no usable blocks", render a working one first.
+- SHAREABLE LINK / PAGE: render_block each visual FIRST, THEN create_page with a title (it reuses the
+  blocks you just rendered). If create_page says "no blocks", render one first, then retry. Give the user
+  the EXACT url create_page returns — never alter the domain. Be concise: when you render visuals
   or make a page, briefly tell the user what you did and the link.
 - If a request is ambiguous, ask ONE short clarifying question.
 - MULTILINGUAL: detect the language of the user's message and ALWAYS reply in that SAME language —
@@ -279,6 +290,7 @@ export async function runAgent(opts: {
     { role: "user", content: message },
   ];
   const sqlLog: AgentResult["sqlLog"] = [];
+  const renderedBlocks: Block[] = []; // blocks rendered this turn; reused if create_page omits blocks
   let cost = 0;
   let concluded = false; // true once the model gives a final answer with no tool calls
 
@@ -329,19 +341,44 @@ export async function runAgent(opts: {
           const resolved = await resolveBlock(block);
           if (block.sql) sqlLog.push({ sql: block.sql, rowCount: resolved.rowCount, error: resolved.error });
           emit({ type: "block", block: resolved });
-          toolResult = { ok: !resolved.error, rowCount: resolved.rowCount, error: resolved.error };
-          emit({ type: "tool", name, status: "done", detail: resolved.error ? `error: ${resolved.error}` : `${resolved.rowCount} rows` });
+          // SELF-CHECK: a visual is only "ready" if it ran AND returned rows.
+          const ready = !resolved.error && resolved.rowCount > 0;
+          if (ready) renderedBlocks.push(block); // only reuse good blocks in a later create_page
+          toolResult = {
+            ok: ready, rowCount: resolved.rowCount, error: resolved.error,
+            hint: ready ? undefined
+              : resolved.error ? "This block FAILED — fix the SQL and render_block again before you finish."
+              : "This block returned 0 ROWS — it would show empty. Fix the query/filter and render_block again; do NOT present an empty visual as the answer.",
+          };
+          emit({ type: "tool", name, status: "done", detail: resolved.error ? `error: ${resolved.error}` : `${resolved.rowCount} rows${ready ? "" : " (EMPTY)"}` });
         } else if (name === "create_page") {
-          const blocks = (args.blocks ?? []).map((b: any) => validateBlock(b)) as Block[];
-          // Resolve to check SQL; keep the blocks that work, drop the ones that error — a page
-          // builds as long as at least one block resolves (don't fail the whole page on one bad query).
+          // Models (esp. cheap ones) often call create_page with empty/partial args. Fall back to the
+          // blocks already rendered this turn so a page still builds; default a title; guide if truly empty.
+          const argBlocks = (args.blocks ?? []).map((b: any) => validateBlock(b)) as Block[];
+          const blocks = argBlocks.length ? argBlocks : renderedBlocks;
           const resolved = await Promise.all(blocks.map((b) => resolveBlock(b)));
-          const good = blocks.filter((_, i) => !resolved[i].error);
-          if (!good.length) throw new Error(`all block queries failed: ${resolved.find((r) => r.error)?.error ?? "no data"}`);
-          const page = await createPage({ title: args.title, subtitle: args.subtitle, blocks: good, owner, chatId: opts.chatId, expiresDays: args.expiresDays });
-          emit({ type: "page", slug: page.slug, url: page.url, title: args.title, expiresAt: page.expiresAt });
-          toolResult = { ok: true, url: page.url, slug: page.slug, expiresAt: page.expiresAt };
-          emit({ type: "tool", name, status: "done", detail: page.url });
+          // SELF-VERIFY: only put blocks on the page that ran AND returned rows (no empty/errored visuals).
+          const good = blocks.filter((_, i) => !resolved[i].error && resolved[i].rowCount > 0);
+          if (!good.length) {
+            toolResult = { ok: false, error: "No usable blocks for the page (every block errored or returned 0 rows). FIRST render_block each chart/KPI/table and confirm it shows rows — THEN create_page (it reuses what you rendered). Fix any empty/failing query before retrying." };
+            emit({ type: "tool", name, status: "done", detail: "error: no usable blocks (guided)" });
+          } else {
+            const dropped = blocks.length - good.length;
+            const title = args.title || "Report";
+            const page = await createPage({ title, subtitle: args.subtitle, blocks: good, owner, chatId: opts.chatId, expiresDays: args.expiresDays });
+            // VISUAL SELF-CHECK (optional but recommended): render the page in headless Chromium +
+            // screenshot before presenting. Requires the 3 wiring steps in README (playwright dep,
+            // Chromium in the image, the x-render-token SSO bypass). checkable=false => present anyway.
+            const rc = await checkPageRender(page.slug);
+            if (rc.checkable && !rc.ok) {
+              toolResult = { ok: false, slug: page.slug, error: `The page was created but FAILED its render check (${rc.jsError ? "JS error: " + rc.jsError : rc.errorBlocks + " error block(s) on the rendered page"}). Do NOT give the user this link. Simplify/fix the offending block and create_page again.` };
+              emit({ type: "tool", name, status: "done", detail: `render-check FAILED — link withheld` });
+            } else {
+              emit({ type: "page", slug: page.slug, url: page.url, title, expiresAt: page.expiresAt });
+              toolResult = { ok: true, url: page.url, slug: page.slug, expiresAt: page.expiresAt, blocksUsed: good.length, renderVerified: rc.checkable && rc.ok, ...(dropped ? { blocksDropped: dropped, note: `${dropped} block(s) were empty/failed and left off the page` } : {}) };
+              emit({ type: "tool", name, status: "done", detail: rc.checkable && rc.ok ? `${page.url} (render ✓ ${rc.visuals} visuals)` : page.url });
+            }
+          }
         } else if (name === "set_filters") {
           const page = String(args.page ?? "");
           if (!FILTER_PAGES.includes(page)) throw new Error(`unknown page: ${page}`);

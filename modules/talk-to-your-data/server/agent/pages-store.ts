@@ -13,6 +13,12 @@ export interface PageSpec {
   blocks: Block[];
 }
 
+// Canonical public origin for shareable links — so links are ALWAYS your real domain regardless of
+// which origin the user views from, and so the model can't fabricate a host (cheap models otherwise
+// default to "*.vercel.app"). SET APP_PUBLIC_URL in your env (e.g. https://yourapp.example.com).
+const PUBLIC_BASE = (process.env.APP_PUBLIC_URL || "https://[[YOUR_PUBLIC_URL]]").replace(/\/+$/, "");
+export function pageUrl(slug: string): string { return `${PUBLIC_BASE}/p/${slug}`; }
+
 const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789"; // no look-alikes
 function makeSlug(n = 8): string {
   let s = "";
@@ -42,7 +48,7 @@ export async function createPage(opts: {
          RETURNING expires_at`,
         [slug, opts.title, opts.subtitle ?? null, JSON.stringify(spec), opts.owner ?? null, opts.chatId ?? null, String(days)],
       );
-      return { slug, url: `/p/${slug}`, expiresAt: String(row?.expires_at ?? "") };
+      return { slug, url: pageUrl(slug), expiresAt: String(row?.expires_at ?? "") };
     } catch (e: any) {
       if (!/duplicate key/i.test(String(e?.message))) throw e;
     }

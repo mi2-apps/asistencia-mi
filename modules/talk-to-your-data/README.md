@@ -145,3 +145,26 @@ result sets never bloat the model context. Pages store specs without data and re
 Threads + an audit log persist to `agent_chats`; pages to `agent_pages`. The loop always concludes
 with a written answer (forced no-tools synthesis if it runs out of turns), and the client recovers the
 persisted answer if the stream drops.
+
+## Render-check (optional but recommended) — verify pages actually render before presenting
+
+`server/agent/render-check.ts` + `render-token.ts` make the agent open each newly-created `/p/:slug`
+page in headless Chromium **in-container**, screenshot it, and analyze the DOM (JS errors / error
+blocks / blank) — withholding the link if it's broken (the model fixes + recreates). The browser
+carries a per-boot `x-render-token` so it can load the SSO-gated page; the token never leaves the
+process. Falls back gracefully (presents the link) if the browser is unavailable, so it can never
+block a working page.
+
+**3 wiring steps** (the files are already in `server/agent/`):
+1. **Dep:** add `"playwright": "^1.6x"` to `dependencies`.
+2. **Image:** in your runtime Dockerfile stage, after the prod `npm install`, add:
+   `RUN npx playwright install --with-deps chromium`
+3. **Auth bypass:** at the TOP of your `requireAuth` middleware, before the session check, add:
+   ```ts
+   import { RENDER_TOKEN } from "../agent/render-token.js";
+   // ...
+   const rt = req.get("x-render-token");
+   if (rt && rt === RENDER_TOKEN) return next();
+   ```
+Then `loop.ts` calls `checkPageRender(page.slug)` after `create_page` (already wired). To disable,
+remove the import + the `checkPageRender` call in `create_page` — everything else still works.
