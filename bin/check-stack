@@ -75,6 +75,7 @@ def main() -> int:
     pkg_deps: set[str] = set()
     pkg_err = None
     pkg_found = False
+    versioned = False
     for pp in root.rglob("package.json"):
         if not keep(pp):
             continue
@@ -82,6 +83,8 @@ def main() -> int:
         try:
             pkg = json.loads(pp.read_text())
             pkg_deps |= set((pkg.get("dependencies") or {}).keys()) | set((pkg.get("devDependencies") or {}).keys())
+            if not versioned and re.match(r"^\d+\.\d+\.\d+", str(pkg.get("version") or "")):
+                versioned = True
         except Exception as e:
             pkg_err = str(e)
 
@@ -131,7 +134,9 @@ def main() -> int:
                  "help.tsx", "helpcenter.tsx", "helppage.tsx", "usermanual.tsx",
                  "manual.tsx", "guide.tsx", "userguide.tsx",
                  "documentation.jsx", "help.jsx", "usermanual.jsx"}
-    dev_manual = user_manual = False
+    CL_FILES = {"changelog.md", "changelog.tsx", "changelogpage.tsx",
+                "whatsnew.tsx", "whats-new.tsx"}
+    dev_manual = user_manual = changelog_present = False
     sql_texts: list[str] = []
     _scanned = 0
     for p in root.rglob("*"):
@@ -142,6 +147,8 @@ def main() -> int:
             dev_manual = True
         if nl in USR_FILES:
             user_manual = True
+        if nl in CL_FILES or "changelog" in pl:
+            changelog_present = True
         if pl.endswith(".sql") and len(sql_texts) < 10:
             try:
                 sql_texts.append(p.read_text(errors="replace")[:200000].lower())
@@ -155,6 +162,8 @@ def main() -> int:
             dev_manual = True
         if "doc_categories" in t or "doc_pages" in t or "documentation_pages" in t:
             user_manual = True
+        if "changelog_entries" in t or "changelog_items" in t:
+            changelog_present = True
     if not user_manual:
         _route_re = re.compile(
             r'(?:path|to|href)\s*=\s*["\']/(?:docs|help|manual|guide|documentation)', re.I)
@@ -204,20 +213,23 @@ def main() -> int:
         ("User Manual",
          "in-app docs/help page (§17a) — a docs/help/manual page or route, or docs-system tables",
          user_manual),
+        ("Changelog+versioning",
+         "changelog system (§17b: changelog_entries table, CHANGELOG.md, or a changelog page) AND a semver version in package.json",
+         changelog_present and versioned),
     ]
 
     score = sum(1 for _, _, ok in checks if ok)
     total = len(checks)
-    # The 9 stack checks are always required; the 2 doc checks (§14d + §17a) become
-    # required for ALL apps on/after DOC_ENFORCE_DATE (2026-06-25).
-    stack_ok = all(ok for _, _, ok in checks[:-2])
-    docs_ok = all(ok for _, _, ok in checks[-2:])
+    # The 9 stack checks are always required; the 3 doc checks (§14d + §17a + §17b)
+    # become required for ALL apps on/after DOC_ENFORCE_DATE (2026-06-25).
+    stack_ok = all(ok for _, _, ok in checks[:-3])
+    docs_ok = all(ok for _, _, ok in checks[-3:])
     enforce_docs = datetime.date.today() >= DOC_ENFORCE_DATE
     passed = stack_ok and (docs_ok if enforce_docs else True)
     docs_note = (None if docs_ok else
-                 ("Docs HARD RULE IN EFFECT (2026-06-25): Developer Manual + User Manual page required."
+                 ("Docs HARD RULE IN EFFECT (2026-06-25): Developer Manual (§14d) + User Manual page (§17a) + Changelog & versioning (§17b) required."
                   if enforce_docs else
-                  "Docs HARD RULE: add a Developer Manual (§14d) + User Manual page (§17a) by 2026-06-25 (not yet blocking)."))
+                  "Docs HARD RULE: add a Developer Manual (§14d) + User Manual page (§17a) + Changelog & versioning (§17b) by 2026-06-25 (not yet blocking)."))
 
     if args.json:
         out = {
