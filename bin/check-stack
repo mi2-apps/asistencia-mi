@@ -18,10 +18,17 @@ Mirror of: ~/.config/coolify-bot/check_stack_conformance.py on coolify-01
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
 import sys
 from pathlib import Path
+
+# Docs HARD RULE (policy 2026-06-17): every app must ship a Developer Manual (§14d)
+# AND an in-app User Manual / docs page (§17a). Enforced for ALL apps on/after this
+# date; before it, the two checks are shown but don't fail the run. Mirrors the
+# server gate in ~/.config/coolify-bot/check_stack_conformance.py.
+DOC_ENFORCE_DATE = datetime.date(2026, 6, 25)
 
 
 def main() -> int:
@@ -117,6 +124,52 @@ def main() -> int:
                 if scanned > 400:
                     break
 
+    # ── Docs HARD RULE detection (§14d Developer Manual + §17a User Manual page) ──
+    DEV_FILES = {"devmanualstorage.ts", "developermanual.ts", "devmanualmcp.ts",
+                 "developermanualviewer.tsx"}
+    USR_FILES = {"documentation.tsx", "documentationpage.tsx", "docs.tsx", "docspage.tsx",
+                 "help.tsx", "helpcenter.tsx", "helppage.tsx", "usermanual.tsx",
+                 "manual.tsx", "guide.tsx", "userguide.tsx",
+                 "documentation.jsx", "help.jsx", "usermanual.jsx"}
+    dev_manual = user_manual = False
+    sql_texts: list[str] = []
+    _scanned = 0
+    for p in root.rglob("*"):
+        if not p.is_file() or not keep(p):
+            continue
+        nl, pl = p.name.lower(), str(p).lower()
+        if nl in DEV_FILES or "developer-manual" in pl or "developer_manual" in pl:
+            dev_manual = True
+        if nl in USR_FILES:
+            user_manual = True
+        if pl.endswith(".sql") and len(sql_texts) < 10:
+            try:
+                sql_texts.append(p.read_text(errors="replace")[:200000].lower())
+            except Exception:
+                pass
+        _scanned += 1
+        if _scanned > 4000:
+            break
+    for t in sql_texts:
+        if "developer_manual" in t or ("table_info" in t and "dictionary" in t):
+            dev_manual = True
+        if "doc_categories" in t or "doc_pages" in t or "documentation_pages" in t:
+            user_manual = True
+    if not user_manual:
+        _route_re = re.compile(
+            r'(?:path|to|href)\s*=\s*["\']/(?:docs|help|manual|guide|documentation)', re.I)
+        for nm in ("App.tsx", "routes.tsx", "router.tsx", "App.jsx"):
+            for p in root.rglob(nm):
+                if not keep(p):
+                    continue
+                try:
+                    if _route_re.search(p.read_text(errors="replace")[:200000]):
+                        user_manual = True
+                except Exception:
+                    pass
+            if user_manual:
+                break
+
     checks = [
         ("React 18",
          "package.json depends on 'react'",
@@ -145,11 +198,26 @@ def main() -> int:
         ("Mobile-ready",
          "viewport meta tag in entry HTML OR responsive Tailwind class (sm:/md:/lg:) used",
          mobile_ok),
+        ("Developer Manual",
+         "data-model module (§14d) — devManual files, /developer-manual, or its tables in a migration",
+         dev_manual),
+        ("User Manual",
+         "in-app docs/help page (§17a) — a docs/help/manual page or route, or docs-system tables",
+         user_manual),
     ]
 
     score = sum(1 for _, _, ok in checks if ok)
     total = len(checks)
-    passed = (score == total)
+    # The 9 stack checks are always required; the 2 doc checks (§14d + §17a) become
+    # required for ALL apps on/after DOC_ENFORCE_DATE (2026-06-25).
+    stack_ok = all(ok for _, _, ok in checks[:-2])
+    docs_ok = all(ok for _, _, ok in checks[-2:])
+    enforce_docs = datetime.date.today() >= DOC_ENFORCE_DATE
+    passed = stack_ok and (docs_ok if enforce_docs else True)
+    docs_note = (None if docs_ok else
+                 ("Docs HARD RULE IN EFFECT (2026-06-25): Developer Manual + User Manual page required."
+                  if enforce_docs else
+                  "Docs HARD RULE: add a Developer Manual (§14d) + User Manual page (§17a) by 2026-06-25 (not yet blocking)."))
 
     if args.json:
         out = {
@@ -163,6 +231,8 @@ def main() -> int:
             out["notes"] = ["package.json missing at repo root — stack requires a Node-based app"]
         elif pkg_err:
             out["notes"] = [f"package.json parse error: {pkg_err}"]
+        if docs_note:
+            out.setdefault("notes", []).append(docs_note)
         print(json.dumps(out, indent=2))
         return 0 if passed else 1
 
@@ -175,6 +245,8 @@ def main() -> int:
     color_tag = GREEN if passed else RED
     verdict = "READY TO PUSH" if passed else "NOT READY — fix the ❌ items before replying 'pushed'"
     print(f"  {BOLD}Score: {color_tag}{score}/{total}{RESET}{BOLD} — {verdict}{RESET}")
+    if docs_note:
+        print(f"\n  {DIM}{docs_note}{RESET}")
 
     if not pkg_found:
         print(f"\n  {RED}note:{RESET} package.json missing at repo root.")
