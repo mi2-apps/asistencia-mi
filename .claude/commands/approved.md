@@ -209,9 +209,26 @@ ssh master@192.168.15.204 "/home/master/e2e-tests/run-e2e.sh <slug>-dev --json"
 4. Delete the remote tag if you pushed it: `git push origin :refs/tags/vX.Y.Z`.
 5. Leave the dev branch deployed (it's the dev branch — that's its purpose). Investigate the failure.
 
+### Step 8a — QA coverage gate (pre-publish, `/stack` §16a + suggestion #9)
+
+Before promoting to production, confirm the QA Runner has a **passing run within the last 30 days** for this app. This is the pre-publish half of the 30-day coverage policy (the daily `qa_coverage_sweep` keeps apps fresh *between* releases; this gate checks *at* release).
+
+```bash
+ssh master@192.168.15.204 "python3 ~/.config/coolify-bot/qa_publish_gate.py <slug> prod"
+```
+
+- **PASS** — a fresh passing run exists → continue to Step 9.
+- **WARN** — not publishable, but before the enforce date (`2026-07-18`) → **advisory**, the release still proceeds. Trigger a fresh QA run so you're green before the gate starts blocking: `POST https://qa.mi2.com.mx/api/v1/runs {"app":"<slug>","env":"prod"}`.
+- **BLOCK** (exit 2, on/after the enforce date) — refuse to promote. Trigger a QA run, wait for it to pass, then re-run this gate.
+- **Out of scope** — apps not yet QA-onboarded (no `/coverage` row) PASS automatically; onboarding to the QA Runner is what opts an app into the gate.
+
+The gate **fails open**: if the QA Runner is unreachable it warns and lets the release through, so a QA outage never wedges all releases.
+
+> Runway: warn-only until **2026-07-18**, blocking thereafter — mirrors the docs conformance gate's date-gated rollout. Today it's advisory; wire it in now so it's already part of muscle memory when it starts blocking.
+
 ### Step 9 — Promote dev → master
 
-Only reached if Step 8 passed.
+Only reached if Step 8 passed **and** Step 8a did not BLOCK.
 
 ```bash
 git checkout master
