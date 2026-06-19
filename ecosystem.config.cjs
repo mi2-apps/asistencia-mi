@@ -3,14 +3,17 @@
 module.exports = {
   apps: [
     {
-      name: "stack-template",
+      name: "asistencia-mi",
       script: "dist/server/index.js",
       instances: 1,
       autorestart: true,
       max_memory_restart: "512M",
+      log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+      error_file: "logs/error.log",
+      out_file: "logs/out.log",
       env: {
         NODE_ENV: "production",
-        PORT: 7000,
+        PORT: 3000,
       },
     },
   ],

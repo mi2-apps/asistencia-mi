@@ -1,0 +1,17 @@
+{
+  "app_name": "Control de Asistencia",
+  "loading": "Cargando...",
+  "error": "Error",
+  "success": "Éxito",
+  "cancel": "Cancelar",
+  "save": "Guardar",
+  "delete": "Eliminar",
+  "edit": "Editar",
+  "add": "Agregar",
+  "search": "Buscar",
+  "confirm": "Confirmar",
+  "back": "Regresar",
+  "actions": "Acciones",
+  "yes": "Sí",
+  "no": "No"
+}

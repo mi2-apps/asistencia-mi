@@ -4,12 +4,13 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = Number(process.env.PORT ?? 7000);
+const PORT = Number(process.env.PORT ?? 3000);
 
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 
-// API routes go here.
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/api/health", (_req, res) =>
+  res.json({ success: true, status: "ok", app: "asistencia-mi" })
+);
 
 // Serve the built Vite client.
 const clientDir = path.resolve(__dirname, "../client");
@@ -19,5 +20,5 @@ app.get("*", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[stack-template] listening on :${PORT}`);
+  console.log(`[asistencia-mi] listening on :${PORT}`);
 });

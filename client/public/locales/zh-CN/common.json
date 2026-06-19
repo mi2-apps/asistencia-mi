@@ -1,0 +1,17 @@
+{
+  "app_name": "考勤控制",
+  "loading": "加载中...",
+  "error": "错误",
+  "success": "成功",
+  "cancel": "取消",
+  "save": "保存",
+  "delete": "删除",
+  "edit": "编辑",
+  "add": "添加",
+  "search": "搜索",
+  "confirm": "确认",
+  "back": "返回",
+  "actions": "操作",
+  "yes": "是",
+  "no": "否"
+}
