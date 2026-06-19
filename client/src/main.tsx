@@ -13,6 +13,8 @@ const Usuarios           = React.lazy(() => import("@client/pages/Usuarios"));
 const Colaboradores      = React.lazy(() => import("@client/pages/Colaboradores"));
 const AgregarColaborador = React.lazy(() => import("@client/pages/AgregarColaborador"));
 const Bajas              = React.lazy(() => import("@client/pages/Bajas"));
+const Changelog          = React.lazy(() => import("@client/pages/Changelog").then((m) => ({ default: m.default })));
+import { WhatsNewModal } from "@client/pages/Changelog";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +59,7 @@ function App() {
   return (
     <AuthGate>
       <AppLayout>
+        <WhatsNewModal />
         <React.Suspense fallback={<div className="p-8 text-muted-foreground text-sm">Cargando módulo...</div>}>
           <Router>
             <Switch>
@@ -67,6 +70,7 @@ function App() {
               <Route path="/colaboradores"         component={() => <AdminGuard><Colaboradores /></AdminGuard>} />
               <Route path="/agregar-colaborador"   component={() => <AdminGuard><AgregarColaborador /></AdminGuard>} />
               <Route path="/bajas"                 component={() => <AdminGuard><Bajas /></AdminGuard>} />
+              <Route path="/changelog"             component={Changelog} />
               <Route                               component={() => <Redirect to="/asistencia" />} />
             </Switch>
           </Router>

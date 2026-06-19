@@ -6,6 +6,7 @@ import {
   UserSquare2,
   UserPlus,
   UserMinus,
+  Sparkles,
   LogOut,
 } from "lucide-react";
 import { cn } from "@client/lib/utils";
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { href: "/colaboradores",       label: "Colaboradores",       icon: UserSquare2,    adminOnly: true  },
   { href: "/agregar-colaborador", label: "Agregar Colaborador", icon: UserPlus,       adminOnly: true  },
   { href: "/bajas",               label: "Bajas",               icon: UserMinus,      adminOnly: true  },
+  { href: "/changelog",           label: "Novedades",           icon: Sparkles,       adminOnly: false },
 ];
 
 export function Sidebar() {
