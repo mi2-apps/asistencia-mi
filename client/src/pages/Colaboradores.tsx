@@ -1,0 +1,279 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft, Search, Edit2, UserMinus } from "lucide-react";
+import { Avatar } from "@client/components/ui/Avatar";
+import { DeptCard } from "@client/components/ui/DeptCard";
+import { Combobox } from "@client/components/ui/Combobox";
+import { DEPARTAMENTOS_LIST, DEPT_COLORS, PUESTOS_LIST, TURNOS, TIPOS_BAJA } from "@shared/constants";
+import { colaboradorSchema } from "@shared/validators";
+import type { ColaboradorInput } from "@shared/validators";
+import { calcularAntiguedad, formatFecha, cn } from "@client/lib/utils";
+
+interface Colaborador {
+  id: number;
+  nombre: string;
+  apellido: string;
+  fullname: string;
+  departamento: string;
+  puesto: string | null;
+  turno: string | null;
+  numero_empleado: string | null;
+  fecha_ingreso: string | null;
+  foto_perfil: string | null;
+  activo: boolean;
+  anios_en_planta: number | null;
+}
+
+const inputCls = "w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring h-10";
+
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-sm font-medium block mb-1.5">{label}</label>
+      {children}
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
+    </div>
+  );
+}
+
+export default function Colaboradores() {
+  const [deptActual, setDeptActual]       = useState<string | null>(null);
+  const [busqueda, setBusqueda]           = useState("");
+  const [editando, setEditando]           = useState<Colaborador | null>(null);
+  const [bajaTarget, setBajaTarget]       = useState<Colaborador | null>(null);
+  const [tipoBaja, setTipoBaja]           = useState("");
+  const [fechaBaja, setFechaBaja]         = useState(new Date().toISOString().slice(0, 10));
+  const [motivoBaja, setMotivoBaja]       = useState("");
+  const qc = useQueryClient();
+
+  const { data, isLoading } = useQuery<{ colaboradores: Colaborador[] }>({
+    queryKey: ["colaboradores"],
+    queryFn: () => fetch("/api/v1/colaboradores?activo=true", { credentials: "include" }).then((r) => r.json()),
+  });
+  const todos = data?.colaboradores ?? [];
+
+  const countByDept = (dept: string) => todos.filter((c) => c.departamento === dept).length;
+
+  const filas = useMemo(() => {
+    let lista = deptActual ? todos.filter((c) => c.departamento === deptActual) : todos;
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase();
+      lista = lista.filter(
+        (c) =>
+          c.fullname.toLowerCase().includes(q) ||
+          c.puesto?.toLowerCase().includes(q) ||
+          c.numero_empleado?.toLowerCase().includes(q) ||
+          c.departamento.toLowerCase().includes(q)
+      );
+    }
+    return lista;
+  }, [todos, deptActual, busqueda]);
+
+  const editForm = useForm<ColaboradorInput>({
+    resolver: zodResolver(colaboradorSchema),
+  });
+
+  const editMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: ColaboradorInput }) => {
+      const r = await fetch(`/api/v1/colaboradores/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!r.ok) throw new Error("Error al guardar");
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["colaboradores"] }); setEditando(null); },
+  });
+
+  const bajaMutation = useMutation({
+    mutationFn: async ({ id, tipo_baja, fecha_baja, motivo_baja }: { id: number; tipo_baja: string; fecha_baja: string; motivo_baja?: string }) => {
+      const r = await fetch(`/api/v1/colaboradores/${id}/estado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ activo: false, tipo_baja, fecha_baja, motivo_baja }),
+      });
+      if (!r.ok) throw new Error("Error al dar de baja");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["bajas"] });
+      setBajaTarget(null);
+    },
+  });
+
+  const abrirEditar = (c: Colaborador) => {
+    setEditando(c);
+    editForm.reset({
+      nombre:          c.nombre,
+      apellido:        c.apellido,
+      departamento:    c.departamento,
+      puesto:          c.puesto ?? "",
+      turno:           (c.turno as any) ?? undefined,
+      numero_empleado: c.numero_empleado ?? "",
+      fecha_ingreso:   c.fecha_ingreso ?? "",
+    });
+  };
+
+  const confirmarBaja = () => {
+    if (!bajaTarget || !tipoBaja) return;
+    bajaMutation.mutate({ id: bajaTarget.id, tipo_baja: tipoBaja, fecha_baja: fechaBaja, motivo_baja: motivoBaja || undefined });
+  };
+
+  if (isLoading) return <div className="p-8 text-muted-foreground text-sm">Cargando...</div>;
+
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          {deptActual && (
+            <button onClick={() => { setDeptActual(null); setBusqueda(""); }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft size={15} />
+            </button>
+          )}
+          <h2 className="text-xl font-semibold">{deptActual ?? "Colaboradores"}</h2>
+          {deptActual && <span className="text-sm text-muted-foreground">({filas.length})</span>}
+        </div>
+        <div className="relative">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder={deptActual ? "Buscar en departamento..." : "Buscar todos..."}
+            className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-48"
+          />
+        </div>
+      </div>
+
+      {!deptActual && !busqueda ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {DEPARTAMENTOS_LIST.map((dept) => (
+            <DeptCard
+              key={dept}
+              nombre={dept}
+              color={DEPT_COLORS[dept] ?? "#888"}
+              stats={{ total: countByDept(dept) }}
+              onClick={() => setDeptActual(dept)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filas.length === 0 ? (
+            <p className="text-muted-foreground text-sm col-span-full">Sin resultados</p>
+          ) : filas.map((c) => (
+            <div key={c.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar nombre={c.nombre} apellido={c.apellido} fotoPerfil={c.foto_perfil} size="md" />
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{c.fullname}</p>
+                    <p className="text-xs text-muted-foreground truncate">{c.puesto ?? "—"}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1 flex-shrink-0">
+                  <button onClick={() => abrirEditar(c)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                    <Edit2 size={13} />
+                  </button>
+                  <button onClick={() => { setBajaTarget(c); setTipoBaja(""); setFechaBaja(new Date().toISOString().slice(0, 10)); setMotivoBaja(""); }} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
+                    <UserMinus size={13} />
+                  </button>
+                </div>
+              </div>
+              <div className="text-xs space-y-0.5 text-muted-foreground">
+                {c.numero_empleado && <p><span className="font-medium text-foreground">Nómina: </span>{c.numero_empleado}</p>}
+                {c.turno && <p><span className="font-medium text-foreground">Turno: </span>{c.turno}</p>}
+                <p><span className="font-medium text-foreground">Antigüedad: </span>{calcularAntiguedad(c.fecha_ingreso)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editando && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <h3 className="font-semibold">Editar Colaborador</h3>
+              <button onClick={() => setEditando(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
+            </div>
+            <form onSubmit={editForm.handleSubmit((d) => editMutation.mutate({ id: editando.id, data: d }))} className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nombre *" error={editForm.formState.errors.nombre?.message}>
+                  <input {...editForm.register("nombre")} className={inputCls} />
+                </Field>
+                <Field label="Apellido *" error={editForm.formState.errors.apellido?.message}>
+                  <input {...editForm.register("apellido")} className={inputCls} />
+                </Field>
+              </div>
+              <Field label="Departamento *" error={editForm.formState.errors.departamento?.message}>
+                <Combobox options={[...DEPARTAMENTOS_LIST]} value={editForm.watch("departamento") ?? ""} onChange={(v) => editForm.setValue("departamento", v, { shouldValidate: true })} />
+              </Field>
+              <Field label="Puesto">
+                <Combobox options={[...PUESTOS_LIST]} value={editForm.watch("puesto") ?? ""} onChange={(v) => editForm.setValue("puesto", v)} />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Turno">
+                  <select {...editForm.register("turno")} className={inputCls}>
+                    <option value="">— Turno —</option>
+                    {TURNOS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </Field>
+                <Field label="N° Empleado">
+                  <input {...editForm.register("numero_empleado")} className={inputCls} />
+                </Field>
+              </div>
+              <Field label="Fecha de ingreso">
+                <input type="date" {...editForm.register("fecha_ingreso")} className={inputCls} />
+              </Field>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setEditando(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">Cancelar</button>
+                <button type="submit" disabled={editMutation.isPending} className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                  {editMutation.isPending ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Baja modal */}
+      {bajaTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-sm">
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <h3 className="font-semibold">Dar de Baja</h3>
+              <button onClick={() => setBajaTarget(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm"><span className="font-medium">{bajaTarget.fullname}</span> — {bajaTarget.departamento}</p>
+              <Field label="Tipo de baja *">
+                <select value={tipoBaja} onChange={(e) => setTipoBaja(e.target.value)} className={inputCls}>
+                  <option value="">— Seleccionar —</option>
+                  {TIPOS_BAJA.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </Field>
+              <Field label="Fecha de baja *">
+                <input type="date" value={fechaBaja} onChange={(e) => setFechaBaja(e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Motivo (opcional)">
+                <textarea value={motivoBaja} onChange={(e) => setMotivoBaja(e.target.value)} rows={2} className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none" />
+              </Field>
+            </div>
+            <div className="p-4 border-t border-border flex justify-end gap-2">
+              <button onClick={() => setBajaTarget(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">Cancelar</button>
+              <button onClick={confirmarBaja} disabled={!tipoBaja || bajaMutation.isPending} className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors">
+                {bajaMutation.isPending ? "..." : "Dar de Baja"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
