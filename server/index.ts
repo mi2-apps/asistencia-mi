@@ -5,6 +5,12 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cors from "cors";
 import { rateLimit } from "express-rate-limit";
+import session from "express-session";
+import passport from "passport";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db.js";
+import { configurePassport } from "./auth/passport.js";
+import ssoRouter from "./auth/routes.js";
 import authRouter from "./routes/auth.js";
 import usuariosRouter from "./routes/usuarios.js";
 import colaboradoresRouter from "./routes/colaboradores.js";
@@ -25,19 +31,32 @@ if (process.env.NODE_ENV !== "production") {
 // ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));
 
-// ── Rate limiting on auth endpoints ──────────────────────────────────────────
-const loginLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 10,
-  message: { success: false, code: "RATE_LIMIT", message: "Demasiados intentos. Intente en 10 minutos." },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use("/auth/callback", loginLimiter);
-app.use("/api/v1/auth", loginLimiter);
+// ── Sessions ──────────────────────────────────────────────────────────────────
+const PgSession = connectPgSimple(session);
+app.use(
+  session({
+    store: new PgSession({ pool, tableName: "session", createTableIfMissing: false }),
+    secret: process.env.SESSION_SECRET ?? "dev-secret-change-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 8 * 60 * 60 * 1000, // 8 hours
+    },
+  })
+);
+
+// ── Passport SSO ──────────────────────────────────────────────────────────────
+configurePassport();
+app.use(passport.initialize());
+app.use(passport.session());
 
 // ── Static uploads ────────────────────────────────────────────────────────────
 app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
+
+// ── SSO routes ────────────────────────────────────────────────────────────────
+app.use("/auth", ssoRouter);
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) =>
