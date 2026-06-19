@@ -2,7 +2,7 @@ node_modules
 dist
 .env
 .env.local
-drizzle
+# drizzle/ is intentionally tracked — it contains SQL migrations
 .pm2
 *.log
 .DS_Store
