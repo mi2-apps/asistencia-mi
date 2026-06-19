@@ -14,6 +14,7 @@ const Colaboradores      = React.lazy(() => import("@client/pages/Colaboradores"
 const AgregarColaborador = React.lazy(() => import("@client/pages/AgregarColaborador"));
 const Bajas              = React.lazy(() => import("@client/pages/Bajas"));
 const Changelog          = React.lazy(() => import("@client/pages/Changelog").then((m) => ({ default: m.default })));
+const UserManual         = React.lazy(() => import("@client/pages/UserManual"));
 import { WhatsNewModal } from "@client/pages/Changelog";
 
 const queryClient = new QueryClient({
@@ -71,6 +72,7 @@ function App() {
               <Route path="/agregar-colaborador"   component={() => <AdminGuard><AgregarColaborador /></AdminGuard>} />
               <Route path="/bajas"                 component={() => <AdminGuard><Bajas /></AdminGuard>} />
               <Route path="/changelog"             component={Changelog} />
+              <Route path="/manual"               component={UserManual} />
               <Route                               component={() => <Redirect to="/asistencia" />} />
             </Switch>
           </Router>

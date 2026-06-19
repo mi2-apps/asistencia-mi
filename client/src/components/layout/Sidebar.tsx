@@ -7,6 +7,7 @@ import {
   UserPlus,
   UserMinus,
   Sparkles,
+  BookOpen,
   LogOut,
 } from "lucide-react";
 import { cn } from "@client/lib/utils";
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/agregar-colaborador", label: "Agregar Colaborador", icon: UserPlus,       adminOnly: true  },
   { href: "/bajas",               label: "Bajas",               icon: UserMinus,      adminOnly: true  },
   { href: "/changelog",           label: "Novedades",           icon: Sparkles,       adminOnly: false },
+  { href: "/manual",              label: "Manual",              icon: BookOpen,       adminOnly: false },
 ];
 
 export function Sidebar() {
