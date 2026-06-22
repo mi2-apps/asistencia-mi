@@ -22,13 +22,13 @@ router.get("/reporte", requireAuth, async (_req, res, next) => {
         c.departamento,
         c.turno,
         c.foto_perfil,
-        a.estado,
+        INITCAP(a.estado) AS estado,
         a.tipo_inasistencia,
         a.notas,
         a.created_at    AS hora
       FROM colaboradores c
       LEFT JOIN asistencia a
-             ON a.colaborador_id = c.id AND a.fecha = CURRENT_DATE
+             ON a.colaborador_id = c.id AND a.fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date
       WHERE c.activo = TRUE
       ORDER BY c.numero_empleado
     `);
@@ -54,9 +54,11 @@ router.get("/semana", requireAuth, async (req, res, next) => {
         c.apellido,
         c.nombre || ' ' || c.apellido AS fullname,
         c.puesto,
+        c.departamento,
+        c.turno,
         c.foto_perfil,
         a.fecha,
-        a.estado,
+        INITCAP(a.estado) AS estado,
         a.tipo_inasistencia,
         a.notas,
         a.created_at    AS hora
@@ -78,32 +80,34 @@ router.get("/semana", requireAuth, async (req, res, next) => {
 router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, next) => {
   const client = await pool.connect();
   try {
-    const data = asistenciaSchema.parse(req.body);
-    const col  = data.persona_tipo === "usuario" ? "usuario_id" : "colaborador_id";
+    const data      = asistenciaSchema.parse(req.body);
+    const col       = data.persona_tipo === "usuario" ? "usuario_id" : "colaborador_id";
+    const estadoDB  = data.estado.toLowerCase();
+    const username  = (req.user as { username: string }).username;
 
     await client.query("BEGIN");
 
     const existe = await client.query(
-      `SELECT id FROM asistencia WHERE ${col} = $1 AND fecha = CURRENT_DATE FOR UPDATE`,
-      [data.persona_id]
+      `SELECT id FROM asistencia WHERE ${col} = $1 AND fecha = $2 FOR UPDATE`,
+      [data.persona_id, data.fecha]
     );
 
     let row;
     if (existe.rows.length > 0) {
       const r = await client.query(
         `UPDATE asistencia
-            SET estado=$1, tipo_inasistencia=$2, notas=$3
-          WHERE id=$4
+            SET estado=$1, tipo_inasistencia=$2, notas=$3, registrado_por=$4
+          WHERE id=$5
          RETURNING *`,
-        [data.estado, data.tipo_inasistencia ?? null, data.notas ?? null, existe.rows[0].id]
+        [estadoDB, data.tipo_inasistencia ?? null, data.notas ?? null, username, existe.rows[0].id]
       );
       row = r.rows[0];
     } else {
       const r = await client.query(
-        `INSERT INTO asistencia (${col}, fecha, estado, tipo_inasistencia, notas)
-         VALUES ($1, CURRENT_DATE, $2, $3, $4)
+        `INSERT INTO asistencia (${col}, fecha, estado, tipo_inasistencia, notas, registrado_por)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [data.persona_id, data.estado, data.tipo_inasistencia ?? null, data.notas ?? null]
+        [data.persona_id, data.fecha, estadoDB, data.tipo_inasistencia ?? null, data.notas ?? null, username]
       );
       row = r.rows[0];
     }
@@ -121,7 +125,7 @@ router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, n
 // DELETE /api/v1/asistencia/hoy — clear today's attendance (admin only)
 router.delete("/hoy", requireAuth, requireAdmin, async (_req, res, next) => {
   try {
-    await db.execute(sql`DELETE FROM asistencia WHERE fecha = CURRENT_DATE`);
+    await db.execute(sql`DELETE FROM asistencia WHERE fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date`);
     res.status(204).send();
   } catch (err) {
     next(err);

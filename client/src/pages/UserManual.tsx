@@ -8,7 +8,7 @@ const SECTIONS = [
     title: "Módulo de Asistencia",
     content: [
       { heading: "¿Qué hace?", text: "Registra la asistencia diaria de todos los colaboradores activos. Puede registrarse como Presente o con uno de los 10 tipos de inasistencia." },
-      { heading: "Cómo registrar asistencia", text: "1. Selecciona el departamento en la vista principal.\n2. En la tabla, haz clic en «Presente» o «Inasistencia» frente al nombre del colaborador.\n3. Para inasistencias, selecciona el tipo (FI, FJ, PSG, etc.) y agrega notas opcionales." },
+      { heading: "Cómo registrar asistencia", text: "1. Selecciona el departamento en la vista principal.\n2. En la tabla, haz clic en «Presente» o «Inasistencia» frente al nombre del colaborador.\n3. Para inasistencias, selecciona el tipo (FI, FJ, PSG, etc.) y agrega notas opcionales.\n4. Una vez registrado, el colaborador desaparece de la vista del día y reaparece al día siguiente." },
       { heading: "Tipos de inasistencia", text: "FI = Falta Injustificada · FJ = Falta Justificada · PSG = Permiso Sin Goce · PCG = Permiso Con Goce · Suspension · Vacaciones · IT = Incapacidad por Trabajo · RET = Retardo · CUM = Cumpleaños · FES = Festivo" },
       { heading: "Limpiar día (solo Admin)", text: "El botón «Limpiar día» elimina todos los registros de asistencia de hoy. Úsalo solo en casos excepcionales." },
     ],
@@ -17,8 +17,9 @@ const SECTIONS = [
     id: "historial",
     title: "Módulo de Historial",
     content: [
-      { heading: "¿Qué hace?", text: "Muestra la asistencia semanal (Lunes a Sábado) de todos los colaboradores activos." },
+      { heading: "¿Qué hace?", text: "Muestra la asistencia semanal (Lunes a Sábado) de todos los colaboradores activos. Al cargar siempre muestra la semana actual." },
       { heading: "Navegar semanas", text: "Usa los botones «<» y «>» para navegar entre semanas. El botón «>» se desactiva en la semana actual para evitar registros futuros." },
+      { heading: "Filtros", text: "Puedes combinar tres filtros independientes:\n• Buscador de texto — filtra por nombre, nómina o puesto.\n• Departamento — muestra solo colaboradores de ese departamento.\n• Turno — muestra solo los turnos que tienen registros en la semana visualizada." },
       { heading: "Interpretar la tabla", text: "✓ verde = Presente. Un código (FI, FJ, etc.) en color = inasistencia del tipo indicado. Guión (—) = sin registro ese día." },
     ],
   },
@@ -33,6 +34,16 @@ const SECTIONS = [
     ],
   },
   {
+    id: "agregar",
+    title: "Agregar Colaborador",
+    content: [
+      { heading: "¿Qué hace?", text: "Permite registrar un nuevo colaborador en el sistema con todos sus datos." },
+      { heading: "Campos requeridos", text: "Nombre, Apellido y Departamento son obligatorios. El resto de campos (Puesto, Turno, Número de Empleado, Fecha de Ingreso, Foto de Perfil) son opcionales." },
+      { heading: "Departamento y Puesto", text: "Ambos campos son combobox buscables — empieza a escribir para filtrar las opciones disponibles." },
+      { heading: "Número de empleado único", text: "Si capturas un número de empleado, el sistema verifica que no esté duplicado antes de guardar." },
+    ],
+  },
+  {
     id: "bajas",
     title: "Módulo de Bajas",
     content: [
@@ -41,13 +52,24 @@ const SECTIONS = [
     ],
   },
   {
+    id: "tiempo-extra",
+    title: "Módulo de Tiempo Extra",
+    content: [
+      { heading: "¿Qué hace?", text: "Registra y consulta el tiempo extra trabajado por los colaboradores, organizado por departamento." },
+      { heading: "Registrar tiempo extra", text: "1. Selecciona el departamento.\n2. Elige «Registrar Tiempo Extra».\n3. Busca al colaborador por nombre o nómina.\n4. Captura la fecha, hora de inicio, hora de fin (las horas totales se calculan automáticamente), área donde trabajó, motivo y quién autorizó.\n5. Haz clic en «Registrar Tiempo Extra»." },
+      { heading: "Historial de Tiempo Extra", text: "Dentro de cada departamento, elige «Historial de Tiempo Extra» para ver los registros agrupados por semana. Haz clic en una semana para ver el detalle de cada colaborador con todos sus datos." },
+      { heading: "Buscador en el detalle", text: "Dentro del detalle de una semana, puedes filtrar por nombre o número de nómina para encontrar rápidamente un registro específico." },
+    ],
+  },
+  {
     id: "usuarios",
     title: "Módulo de Usuarios",
     content: [
-      { heading: "¿Qué hace?", text: "Gestiona los usuarios del sistema (administradores y usuarios estándar)." },
+      { heading: "¿Qué hace?", text: "Gestiona los usuarios del sistema (administradores y usuarios estándar). Solo visible para administradores." },
       { heading: "Crear usuario", text: "Haz clic en «Nuevo». El username se genera automáticamente como nombre.apellido (sin acentos). Si ya existe, se añade un sufijo numérico (p. ej. juan.garcia2)." },
       { heading: "Roles", text: "«Admin» tiene acceso a todos los módulos. «Usuario» solo puede ver Asistencia e Historial." },
       { heading: "Protección del administrador", text: "El usuario «admin» no puede ser eliminado del sistema." },
+      { heading: "Inicio de sesión", text: "Una vez desplegada la app en producción, el acceso se realiza con las credenciales de cuenta MI Global (mismo usuario y contraseña que usas en Nextcloud y correo)." },
     ],
   },
 ];

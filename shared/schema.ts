@@ -7,6 +7,7 @@ import {
   date,
   timestamp,
   integer,
+  numeric,
   uniqueIndex,
   index,
   check,
@@ -18,7 +19,7 @@ import { sql, relations } from "drizzle-orm";
 export const usuarios = pgTable("usuarios", {
   id:              serial("id").primaryKey(),
   username:        varchar("username", { length: 60 }).notNull().unique(),
-  password_hash:   text("password_hash").notNull(),
+  password_hash:   text("password").notNull(),
   nombre:          varchar("nombre", { length: 100 }).notNull(),
   apellido:        varchar("apellido", { length: 100 }).notNull(),
   role:            varchar("role", { length: 20 }).notNull().default("usuario"),
@@ -85,6 +86,22 @@ export const asistencia = pgTable(
     fechaIdx: index("asistencia_fecha_idx").on(table.fecha),
   })
 );
+
+// ─── tiempo_extra ─────────────────────────────────────────────────────────────
+
+export const tiempoExtra = pgTable("tiempo_extra", {
+  id:             serial("id").primaryKey(),
+  colaborador_id: integer("colaborador_id").notNull().references(() => colaboradores.id, { onDelete: "cascade" }),
+  fecha:          date("fecha").notNull(),
+  hora_inicio:    varchar("hora_inicio", { length: 5 }).notNull(),
+  hora_fin:       varchar("hora_fin",    { length: 5 }).notNull(),
+  horas_totales:  numeric("horas_totales", { precision: 4, scale: 2 }).notNull(),
+  area:           varchar("area",         { length: 100 }).notNull(),
+  motivo:         text("motivo").notNull(),
+  autorizado_por: varchar("autorizado_por", { length: 100 }).notNull(),
+  registrado_por: varchar("registrado_por", { length: 60 }).notNull(),
+  created_at:     timestamp("created_at").defaultNow(),
+});
 
 // ─── session (connect-pg-simple) ─────────────────────────────────────────────
 

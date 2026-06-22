@@ -5,7 +5,7 @@ import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
 import { DEPARTAMENTOS_LIST, DEPT_COLORS, TIPOS_INASISTENCIA } from "@shared/constants";
 import { useAuthStore } from "@client/stores/authStore";
-import { cn } from "@client/lib/utils";
+import { cn, toLocalISO } from "@client/lib/utils";
 
 interface ReporteRow {
   colaborador_id: number;
@@ -54,6 +54,7 @@ export default function Asistencia() {
 
   const filas = useMemo(() => {
     let lista = deptActual ? reporte.filter((r) => r.departamento === deptActual) : reporte;
+    if (deptActual) lista = lista.filter((r) => !r.estado);
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase();
       lista = lista.filter(
@@ -67,6 +68,9 @@ export default function Asistencia() {
     return lista;
   }, [reporte, deptActual, busqueda]);
 
+  const totalDept = deptActual ? reporte.filter((r) => r.departamento === deptActual).length : 0;
+  const todosRegistrados = deptActual && filas.length === 0 && totalDept > 0;
+
   const registrarMutation = useMutation({
     mutationFn: async ({ persona_id, estado, tipo_inasistencia, notas }: {
       persona_id: number;
@@ -78,7 +82,14 @@ export default function Asistencia() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ persona_tipo: "colaborador", persona_id, estado, tipo_inasistencia, notas }),
+        body: JSON.stringify({
+          persona_tipo: "colaborador",
+          persona_id,
+          estado,
+          tipo_inasistencia,
+          notas,
+          fecha: toLocalISO(),
+        }),
       });
       if (!r.ok) throw new Error("Error al registrar");
     },
@@ -175,7 +186,17 @@ export default function Asistencia() {
             </thead>
             <tbody>
               {filas.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">Sin colaboradores</td></tr>
+                <tr>
+                  <td colSpan={5} className="text-center py-10 text-muted-foreground">
+                    {todosRegistrados ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-2xl">✓</span>
+                        <span className="font-medium text-green-600">Todos registrados</span>
+                        <span className="text-xs">Todos los colaboradores de este departamento ya tienen asistencia hoy</span>
+                      </div>
+                    ) : "Sin colaboradores"}
+                  </td>
+                </tr>
               ) : filas.map((r) => (
                 <tr key={r.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
                   <td className="px-4 py-2">

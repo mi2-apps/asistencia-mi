@@ -56,6 +56,19 @@ export const reactivarSchema = z.object({
   activo: z.literal(true),
 });
 
+export const tiempoExtraSchema = z.object({
+  colaborador_id: z.number().int().positive(),
+  fecha:          z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
+  hora_inicio:    z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM requerido"),
+  hora_fin:       z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM requerido"),
+  horas_totales:  z.number().positive("Las horas deben ser positivas"),
+  area:           z.string().min(1).max(100),
+  motivo:         z.string().min(1, "El motivo es requerido"),
+  autorizado_por: z.string().min(1, "El autorizador es requerido").max(100),
+});
+
+export type TiempoExtraInput = z.infer<typeof tiempoExtraSchema>;
+
 export type LoginInput          = z.infer<typeof loginSchema>;
 export type UsuarioCreateInput  = z.infer<typeof usuarioCreateSchema>;
 export type UsuarioUpdateInput  = z.infer<typeof usuarioUpdateSchema>;

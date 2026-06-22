@@ -20,6 +20,24 @@ function canonicalizeEmail(email: string): string {
 }
 
 export function configurePassport() {
+  // Always register serialize/deserialize regardless of SSO availability
+  passport.serializeUser((user, done) => {
+    done(null, (user as AuthUser).id);
+  });
+
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const [user] = await db
+        .select({ id: usuarios.id, username: usuarios.username, role: usuarios.role })
+        .from(usuarios)
+        .where(eq(usuarios.id, id));
+
+      done(null, user ?? false);
+    } catch (err) {
+      done(err);
+    }
+  });
+
   if (!CLIENT_ID || !CLIENT_SECRET) {
     console.warn("[auth] OIDC_CLIENT_ID / OIDC_CLIENT_SECRET not set — SSO will be unavailable in this environment");
     return;
@@ -95,21 +113,4 @@ export function configurePassport() {
       }
     )
   );
-
-  passport.serializeUser((user, done) => {
-    done(null, (user as AuthUser).id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const [user] = await db
-        .select({ id: usuarios.id, username: usuarios.username, role: usuarios.role })
-        .from(usuarios)
-        .where(eq(usuarios.id, id));
-
-      done(null, user ?? false);
-    } catch (err) {
-      done(err);
-    }
-  });
 }

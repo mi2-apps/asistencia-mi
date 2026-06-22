@@ -43,10 +43,16 @@ export function formatFecha(date: string | Date | null | undefined, locale = "es
   });
 }
 
-export function iniciales(nombre: string, apellido?: string): string {
-  const n = nombre.trim().split(/\s+/)[0][0]?.toUpperCase() ?? "";
+export function toLocalISO(d: Date = new Date()): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function iniciales(nombre: string | null | undefined, apellido?: string | null): string {
+  if (!nombre) return "?";
+  const n = nombre.trim().split(/\s+/)[0]?.[0]?.toUpperCase() ?? "";
   const a = apellido
-    ? apellido.trim().split(/\s+/)[0][0]?.toUpperCase() ?? ""
+    ? apellido.trim().split(/\s+/)[0]?.[0]?.toUpperCase() ?? ""
     : nombre.trim().split(/\s+/)[1]?.[0]?.toUpperCase() ?? "";
-  return `${n}${a}`;
+  return `${n}${a}` || "?";
 }

@@ -15,6 +15,7 @@ import authRouter from "./routes/auth.js";
 import usuariosRouter from "./routes/usuarios.js";
 import colaboradoresRouter from "./routes/colaboradores.js";
 import asistenciaRouter from "./routes/asistencia.js";
+import tiempoExtraRouter from "./routes/tiempoExtra.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -30,12 +31,13 @@ if (process.env.NODE_ENV !== "production") {
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: false }));
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 const PgSession = connectPgSimple(session);
 app.use(
   session({
-    store: new PgSession({ pool, tableName: "session", createTableIfMissing: false }),
+    store: new PgSession({ pool, tableName: "session", createTableIfMissing: true }),
     secret: process.env.SESSION_SECRET ?? "dev-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
@@ -66,6 +68,7 @@ app.use("/api/v1/auth",          authRouter);
 app.use("/api/v1/usuarios",      usuariosRouter);
 app.use("/api/v1/colaboradores", colaboradoresRouter);
 app.use("/api/v1/asistencia",    asistenciaRouter);
+app.use("/api/v1/tiempo-extra",  tiempoExtraRouter);
 
 // ── SPA fallback ──────────────────────────────────────────────────────────────
 const clientDir = path.resolve(__dirname, "../client");

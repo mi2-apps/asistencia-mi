@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn, formatFecha } from "@client/lib/utils";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { cn, formatFecha, toLocalISO } from "@client/lib/utils";
 import { Avatar } from "@client/components/ui/Avatar";
-import { TIPOS_INASISTENCIA } from "@shared/constants";
+import { TIPOS_INASISTENCIA, DEPARTAMENTOS_LIST } from "@shared/constants";
 
 interface RegistroSemana {
   colaborador_id: number;
@@ -12,6 +12,8 @@ interface RegistroSemana {
   fullname: string;
   numero_empleado: string | null;
   puesto: string | null;
+  departamento: string | null;
+  turno: string | null;
   foto_perfil: string | null;
   fecha: string | null;
   estado: string | null;
@@ -43,11 +45,14 @@ function getMondayOfWeek(offset: number): Date {
 }
 
 function toISO(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return toLocalISO(d);
 }
 
 export default function Historial() {
-  const [offset, setOffset] = useState(-1);
+  const [offset, setOffset]     = useState(0);
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroDept, setDept]   = useState("");
+  const [filtroTurno, setTurno] = useState("");
 
   const lunes   = getMondayOfWeek(offset);
   const sabado  = new Date(lunes); sabado.setDate(lunes.getDate() + 5);
@@ -74,6 +79,29 @@ export default function Historial() {
     return Array.from(map.values());
   }, [data]);
 
+  const turnos = useMemo(() => {
+    const set = new Set<string>();
+    for (const { info } of byColaborador) {
+      if (info.turno) set.add(info.turno);
+    }
+    return Array.from(set).sort();
+  }, [byColaborador]);
+
+  const colaboradoresFiltrados = useMemo(() => {
+    let lista = byColaborador;
+    if (filtroDept)  lista = lista.filter(({ info }) => info.departamento === filtroDept);
+    if (filtroTurno) lista = lista.filter(({ info }) => info.turno === filtroTurno);
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase();
+      lista = lista.filter(({ info }) =>
+        info.fullname.toLowerCase().includes(q) ||
+        info.numero_empleado?.toLowerCase().includes(q) ||
+        info.puesto?.toLowerCase().includes(q)
+      );
+    }
+    return lista;
+  }, [byColaborador, busqueda, filtroDept, filtroTurno]);
+
   const totales = useMemo(() => {
     let presentes = 0, inasistencias = 0;
     for (const { dias: dm } of byColaborador) {
@@ -95,7 +123,36 @@ export default function Historial() {
             {lunes.toLocaleDateString("es-MX", { month: "long", year: "numeric" })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar colaborador..."
+              className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-44"
+            />
+          </div>
+          <select
+            value={filtroDept}
+            onChange={(e) => setDept(e.target.value)}
+            className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Todos los departamentos</option>
+            {DEPARTAMENTOS_LIST.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+          <select
+            value={filtroTurno}
+            onChange={(e) => setTurno(e.target.value)}
+            className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Todos los turnos</option>
+            {turnos.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
           <button
             onClick={() => setOffset((o) => o - 1)}
             className="p-2 rounded-lg border border-border hover:bg-muted transition-colors"
@@ -153,7 +210,7 @@ export default function Historial() {
               <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Cargando...</td></tr>
             ) : byColaborador.length === 0 ? (
               <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Sin registros</td></tr>
-            ) : byColaborador.map(({ info, dias: dm }) => (
+            ) : colaboradoresFiltrados.map(({ info, dias: dm }) => (
               <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
                 <td className="px-4 py-2">
                   <div className="flex items-center gap-2">

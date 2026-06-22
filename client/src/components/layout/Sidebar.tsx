@@ -6,8 +6,10 @@ import {
   UserSquare2,
   UserPlus,
   UserMinus,
+  Timer,
   Sparkles,
   BookOpen,
+  FileCode,
   LogOut,
 } from "lucide-react";
 import { cn } from "@client/lib/utils";
@@ -20,8 +22,10 @@ const NAV_ITEMS = [
   { href: "/colaboradores",       label: "Colaboradores",       icon: UserSquare2,    adminOnly: true  },
   { href: "/agregar-colaborador", label: "Agregar Colaborador", icon: UserPlus,       adminOnly: true  },
   { href: "/bajas",               label: "Bajas",               icon: UserMinus,      adminOnly: true  },
+  { href: "/tiempo-extra",       label: "Tiempo Extra",        icon: Timer,          adminOnly: true  },
   { href: "/changelog",           label: "Novedades",           icon: Sparkles,       adminOnly: false },
   { href: "/manual",              label: "Manual",              icon: BookOpen,       adminOnly: false },
+  { href: "/developer-manual",   label: "Dev Manual",          icon: FileCode,       adminOnly: true  },
 ];
 
 export function Sidebar() {
@@ -31,7 +35,7 @@ export function Sidebar() {
   if (!isAuthenticated) return null;
 
   return (
-    <aside className="w-60 min-h-screen bg-brand-navy text-white flex flex-col flex-shrink-0">
+    <aside className="w-60 h-full bg-brand-navy text-white flex flex-col flex-shrink-0">
       {/* Logo / app name */}
       <div className="px-6 py-5 border-b border-white/10">
         <p className="text-xs text-white/50 uppercase tracking-widest">MI Technologies</p>
