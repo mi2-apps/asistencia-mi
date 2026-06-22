@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as OIDCStrategy } from "passport-openidconnect";
+import type { VerifyCallback, Profile } from "passport-openidconnect";
 import { eq } from "drizzle-orm";
 import { db } from "../db.js";
 import { usuarios } from "../../shared/schema.js";
@@ -55,15 +56,11 @@ export function configurePassport() {
         callbackURL:         REDIRECT_URI,
         scope:               "openid email profile",
       },
-      async (
-        _issuer: string,
-        profile: { id: string; displayName?: string; emails?: Array<{ value: string }> },
-        done: (err: Error | null | unknown, user?: { id: number; username: string; role: string } | false) => void
-      ) => {
+      async (_issuer: string, profile: Profile, done: VerifyCallback) => {
         try {
           const sub   = profile.id;
           const email = canonicalizeEmail(
-            (profile.emails?.[0]?.value ?? profile.id).toLowerCase()
+            ((profile.emails?.[0]?.value ?? profile.id) as string).toLowerCase()
           );
 
           // 1) Look up by nextcloud_sub
@@ -93,7 +90,7 @@ export function configurePassport() {
           }
 
           // 3) Auto-provision — new user with role 'usuario'
-          const displayName = (profile.displayName ?? email).split(" ");
+          const displayName = ((profile.displayName ?? email) as string).split(" ");
           const nombre  = displayName[0]  ?? "Nuevo";
           const apellido = displayName.slice(1).join(" ") || "Usuario";
           const username = localPart;
