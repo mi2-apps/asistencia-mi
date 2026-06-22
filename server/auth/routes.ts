@@ -18,13 +18,53 @@ const loginLimiter = rateLimit({
 
 const router = Router();
 
+const ERROR_PAGE = (msg: string) => `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Error de autenticación</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+         background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .card{background:white;border-radius:14px;padding:2rem;width:100%;max-width:380px;
+          box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}
+    .logo{background:#0A1929;color:white;border-radius:8px;padding:.5rem 1rem;
+          font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+          display:inline-block;margin-bottom:1.5rem}
+    h1{font-size:1.1rem;margin-bottom:.5rem;color:#111}
+    .err{color:#ef4444;font-size:.9rem;margin-bottom:1.5rem;padding:0 .5rem}
+    a{display:inline-block;background:#0A1929;color:white;text-decoration:none;
+      border-radius:8px;padding:.7rem 1.5rem;font-size:.95rem;font-weight:600}
+    a:hover{background:#1e3a5f}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">MI Technologies</div>
+    <h1>Error de inicio de sesión</h1>
+    <p class="err">${msg}</p>
+    <a href="/auth/login">Intentar de nuevo</a>
+  </div>
+</body>
+</html>`;
+
 // GET /auth/login
 router.get("/login", loginLimiter, (req, res, next) => {
+  // Always show error page when ?error= is present — never loop back into OIDC.
+  // Without this guard, a callback failure would redirect here, immediately start a
+  // new OIDC flow on a session with stale/missing state, and produce a 500.
+  if (req.query.error) {
+    return res.status(401).send(ERROR_PAGE(String(req.query.error)));
+  }
+
   if (SSO_READY) {
     return passport.authenticate("openidconnect")(req, res, next);
   }
+
   // Dev mode: serve a simple login form
-  const error = req.query.error ? `<p style="color:#ef4444;margin-bottom:1rem">${req.query.error}</p>` : "";
+  const error = "";
   res.send(`<!doctype html>
 <html lang="es">
 <head>
@@ -103,7 +143,7 @@ router.get(
   "/callback",
   (req, res, next) => {
     if (!SSO_READY) return res.redirect("/auth/login");
-    passport.authenticate("openidconnect", { failureRedirect: "/auth/login?error=Error+de+autenticación" })(req, res, next);
+    passport.authenticate("openidconnect", { failureRedirect: "/auth/login?error=Error+de+autenticaci%C3%B3n" })(req, res, next);
   },
   (_req, res) => res.redirect("/")
 );

@@ -21,6 +21,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = Number(process.env.PORT ?? 3000);
 
+// ── Trust proxy (required behind Nginx/Caddy/Traefik in production) ──────────
+// Without this, express-session won't send the Secure cookie and OIDC state
+// stored in the session is lost between the authorize redirect and the callback.
+app.set("trust proxy", 1);
+
 // ── Security & logging ────────────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -80,8 +85,8 @@ app.get("*", (_req, res) => {
 // ── Error handler ─────────────────────────────────────────────────────────────
 app.use((err: Error & { status?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const status = err.status ?? 500;
-  console.error("[error]", err.message);
-  res.status(status).json({ success: false, message: err.message ?? "Error interno del servidor" });
+  console.error("[error]", err.name, err.message, err.stack);
+  res.status(status).json({ success: false, message: err.message || "Error interno del servidor" });
 });
 
 app.listen(PORT, () => {
