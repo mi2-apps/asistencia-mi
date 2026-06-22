@@ -55,7 +55,11 @@ export function configurePassport() {
         callbackURL:         REDIRECT_URI,
         scope:               "openid email profile",
       },
-      async (_issuer, profile, done) => {
+      async (
+        _issuer: string,
+        profile: { id: string; displayName?: string; emails?: Array<{ value: string }> },
+        done: (err: Error | null | unknown, user?: { id: number; username: string; role: string } | false) => void
+      ) => {
         try {
           const sub   = profile.id;
           const email = canonicalizeEmail(
