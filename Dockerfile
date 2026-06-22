@@ -3,7 +3,9 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+# NODE_ENV=production is injected by Coolify as a build arg and causes npm to
+# skip devDependencies. Force --include=dev so vite/tsc are available.
+RUN npm ci --include=dev
 
 COPY . .
 RUN npm run build
