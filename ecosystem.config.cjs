@@ -4,7 +4,7 @@ module.exports = {
   apps: [
     {
       name: "asistencia-mi",
-      script: "dist/server/index.js",
+      script: "dist/server/server/index.js",
       instances: 1,
       autorestart: true,
       max_memory_restart: "512M",

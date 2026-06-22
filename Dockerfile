@@ -1,15 +1,32 @@
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
+
 COPY package*.json ./
-RUN npm ci --include=dev
+RUN npm ci
+
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS runtime
+# ── Stage 2: Producción ───────────────────────────────────────────────────────
+FROM node:20-alpine AS production
 WORKDIR /app
+
+# Solo dependencias de producción
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev
+
+# Archivos compilados y configuración PM2
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/drizzle ./drizzle
+COPY ecosystem.config.cjs ./
+
+# El servidor compilado (dist/server/server/index.js) resuelve "../client"
+# como dist/server/client/ — mover el build del frontend ahí
+RUN cp -r dist/client dist/server/client
+
+# Directorios de uploads y logs (uploads debe montarse como volumen en Coolify)
+RUN mkdir -p uploads logs
+
 EXPOSE 3000
-CMD ["node", "dist/server/index.js"]
+
+CMD ["node_modules/.bin/pm2-runtime", "ecosystem.config.cjs"]
