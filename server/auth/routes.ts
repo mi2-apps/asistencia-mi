@@ -10,7 +10,7 @@ const SSO_READY = !!(process.env.OIDC_CLIENT_ID && process.env.OIDC_CLIENT_SECRE
 
 const loginLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 100,
+  max: 30,
   message: { success: false, code: "RATE_LIMIT", message: "Demasiados intentos. Intente en 10 minutos." },
   standardHeaders: true,
   legacyHeaders: false,
