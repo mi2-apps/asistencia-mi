@@ -14,6 +14,9 @@ RUN npm run build
 FROM node:20-alpine AS production
 WORKDIR /app
 
+# Actualizar paquetes del SO para parchear libcrypto3/libssl3
+RUN apk upgrade --no-cache
+
 # Solo dependencias de producción
 COPY package*.json ./
 RUN npm ci --omit=dev
@@ -27,7 +30,10 @@ COPY ecosystem.config.cjs ./
 RUN cp -r dist/client dist/server/client
 
 # Directorios de uploads y logs (uploads debe montarse como volumen en Coolify)
-RUN mkdir -p uploads logs
+RUN mkdir -p uploads logs && chown -R node:node /app
+
+# Correr como usuario no-root
+USER node
 
 EXPOSE 3000
 
