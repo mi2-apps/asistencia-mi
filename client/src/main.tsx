@@ -53,8 +53,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 }
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore();
-  if (user?.role !== "admin") return <Redirect to="/asistencia" />;
   return <>{children}</>;
 }
 

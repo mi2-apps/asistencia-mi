@@ -152,8 +152,43 @@ router.get(
 router.get("/logout", (req, res, next) => {
   req.logout((err) => {
     if (err) return next(err);
-    req.session.destroy(() => res.redirect("/auth/login"));
+    req.session.destroy(() => res.redirect("/auth/logged-out"));
   });
+});
+
+// GET /auth/logged-out — página intermedia tras cerrar sesión
+router.get("/logged-out", (_req, res) => {
+  res.send(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sesión cerrada — MI Technologies</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+         background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .card{background:white;border-radius:14px;padding:2rem;width:100%;max-width:360px;
+          box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}
+    .logo{background:#0A1929;color:white;border-radius:8px;padding:.5rem 1rem;
+          font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+          display:inline-block;margin-bottom:1.5rem}
+    h1{font-size:1.1rem;margin-bottom:.5rem;color:#111}
+    p{font-size:.9rem;color:#6b7280;margin-bottom:1.5rem}
+    a{display:inline-block;background:#0A1929;color:white;text-decoration:none;
+      border-radius:8px;padding:.7rem 1.5rem;font-size:.95rem;font-weight:600}
+    a:hover{background:#1e3a5f}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">MI Technologies</div>
+    <h1>Sesión cerrada</h1>
+    <p>Tu sesión ha sido cerrada correctamente.</p>
+    <a href="/auth/login">Iniciar sesión</a>
+  </div>
+</body>
+</html>`);
 });
 
 export default router;
