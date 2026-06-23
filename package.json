@@ -81,6 +81,12 @@
   },
   "engines": { "node": ">=20" },
   "overrides": {
-    "js-yaml": ">=4.2.0"
+    "js-yaml": ">=4.2.0",
+    "ws": ">=8.21.0",
+    "cross-spawn": ">=7.0.6",
+    "tar": ">=7.5.16",
+    "glob": ">=11.0.2",
+    "minimatch": ">=10.2.5",
+    "brace-expansion": ">=4.0.0"
   }
 }
