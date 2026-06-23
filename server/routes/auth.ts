@@ -9,7 +9,7 @@ router.get("/me", requireAuth, (req, res) => {
   const user = req.user as AuthUser;
   res.json({
     success: true,
-    user: { id: user.id, username: user.username, role: user.role },
+    user: { id: user.id, username: user.username, role: user.role, permisos: user.permisos ?? null },
   });
 });
 

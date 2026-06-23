@@ -29,7 +29,7 @@ export function configurePassport() {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const [user] = await db
-        .select({ id: usuarios.id, username: usuarios.username, role: usuarios.role })
+        .select({ id: usuarios.id, username: usuarios.username, role: usuarios.role, permisos: usuarios.permisos })
         .from(usuarios)
         .where(eq(usuarios.id, id));
 
@@ -70,7 +70,7 @@ export function configurePassport() {
             .where(eq(usuarios.nextcloud_sub, sub));
 
           if (existingSub) {
-            return done(null, { id: existingSub.id, username: existingSub.username, role: existingSub.role });
+            return done(null, { id: existingSub.id, username: existingSub.username, role: existingSub.role, permisos: existingSub.permisos ?? null });
           }
 
           // 2) Try matching by username derived from email local part
@@ -86,7 +86,7 @@ export function configurePassport() {
               .update(usuarios)
               .set({ nextcloud_sub: sub })
               .where(eq(usuarios.id, existingEmail.id));
-            return done(null, { id: existingEmail.id, username: existingEmail.username, role: existingEmail.role });
+            return done(null, { id: existingEmail.id, username: existingEmail.username, role: existingEmail.role, permisos: existingEmail.permisos ?? null });
           }
 
           // 3) Auto-provision — new user with role 'usuario'
@@ -107,7 +107,7 @@ export function configurePassport() {
             })
             .returning();
 
-          return done(null, { id: newUser.id, username: newUser.username, role: newUser.role });
+          return done(null, { id: newUser.id, username: newUser.username, role: newUser.role, permisos: null });
         } catch (err) {
           return done(err as Error);
         }

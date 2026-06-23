@@ -52,7 +52,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AdminGuard({ children }: { children: React.ReactNode }) {
+function PermGuard({ modulo, children }: { modulo: string; children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  if (!user) return null;
+  if (user.role === "admin") return <>{children}</>;
+  if (modulo === "admin") return <Redirect to="/asistencia" />;
+  if (!user.permisos?.[modulo]) return <Redirect to="/asistencia" />;
   return <>{children}</>;
 }
 
@@ -67,14 +72,14 @@ function App() {
               <Route path="/"                      component={() => <Redirect to="/asistencia" />} />
               <Route path="/asistencia"            component={Asistencia} />
               <Route path="/historial"             component={Historial} />
-              <Route path="/usuarios"              component={() => <AdminGuard><Usuarios /></AdminGuard>} />
-              <Route path="/colaboradores"         component={() => <AdminGuard><Colaboradores /></AdminGuard>} />
-              <Route path="/agregar-colaborador"   component={() => <AdminGuard><AgregarColaborador /></AdminGuard>} />
-              <Route path="/bajas"                 component={() => <AdminGuard><Bajas /></AdminGuard>} />
-              <Route path="/tiempo-extra"          component={() => <AdminGuard><TiempoExtra /></AdminGuard>} />
+              <Route path="/usuarios"              component={() => <PermGuard modulo="admin"><Usuarios /></PermGuard>} />
+              <Route path="/colaboradores"         component={() => <PermGuard modulo="colaboradores"><Colaboradores /></PermGuard>} />
+              <Route path="/agregar-colaborador"   component={() => <PermGuard modulo="colaboradores"><AgregarColaborador /></PermGuard>} />
+              <Route path="/bajas"                 component={() => <PermGuard modulo="colaboradores"><Bajas /></PermGuard>} />
+              <Route path="/tiempo-extra"          component={() => <PermGuard modulo="tiempo_extra"><TiempoExtra /></PermGuard>} />
               <Route path="/changelog"             component={Changelog} />
               <Route path="/manual"               component={UserManual} />
-              <Route path="/developer-manual"     component={() => <AdminGuard><DeveloperManual /></AdminGuard>} />
+              <Route path="/developer-manual"     component={() => <PermGuard modulo="admin"><DeveloperManual /></PermGuard>} />
               <Route                               component={() => <Redirect to="/asistencia" />} />
             </Switch>
           </Router>

@@ -3,13 +3,23 @@ import { sql } from "drizzle-orm";
 import { db } from "../db.js";
 import { tiempoExtra } from "../../shared/schema.js";
 import { tiempoExtraSchema } from "../../shared/validators.js";
-import { requireAuth, validateBody } from "../middleware/auth.js";
+import { requireAuth, requireModulo, getAllowedDepts, validateBody } from "../middleware/auth.js";
+import type { AuthUser } from "../middleware/auth.js";
 
 const router = Router();
 
 // GET /api/v1/tiempo-extra/stats — conteo por departamento para tarjetas
-router.get("/stats", requireAuth, async (_req, res, next) => {
+router.get("/stats", requireAuth, requireModulo("tiempo_extra"), async (req, res, next) => {
   try {
+    const user = req.user as AuthUser;
+    const depts = getAllowedDepts(user, "tiempo_extra");
+
+    if (depts !== null && depts.length === 0) {
+      return res.json({ success: true, stats: {} });
+    }
+
+    const deptsFilter = depts === null ? sql`` : sql`AND c.departamento = ANY(${depts})`;
+
     const rows = await db.execute(sql`
       SELECT
         c.departamento,
@@ -17,6 +27,7 @@ router.get("/stats", requireAuth, async (_req, res, next) => {
       FROM colaboradores c
       LEFT JOIN tiempo_extra te ON te.colaborador_id = c.id
       WHERE c.activo = TRUE
+        ${deptsFilter}
       GROUP BY c.departamento
     `);
     const stats: Record<string, number> = {};
@@ -30,9 +41,24 @@ router.get("/stats", requireAuth, async (_req, res, next) => {
 });
 
 // GET /api/v1/tiempo-extra/semanas?departamento=X — agrupado por semana ISO
-router.get("/semanas", requireAuth, async (req, res, next) => {
+router.get("/semanas", requireAuth, requireModulo("tiempo_extra"), async (req, res, next) => {
   try {
-    const dept = req.query.departamento as string | undefined;
+    const user = req.user as AuthUser;
+    const depts = getAllowedDepts(user, "tiempo_extra");
+    const deptQuery = req.query.departamento as string | undefined;
+
+    if (depts !== null && depts.length === 0) {
+      return res.json({ success: true, semanas: [] });
+    }
+
+    // Combine user's allowed depts with optional dept query param
+    const effectiveDept = deptQuery && (depts === null || depts.includes(deptQuery)) ? deptQuery : null;
+    const deptsFilter = effectiveDept
+      ? sql`WHERE c.departamento = ${effectiveDept}`
+      : depts !== null
+        ? sql`WHERE c.departamento = ANY(${depts})`
+        : sql``;
+
     const rows = await db.execute(sql`
       SELECT
         EXTRACT(YEAR FROM te.fecha)::int                         AS year,
@@ -43,7 +69,7 @@ router.get("/semanas", requireAuth, async (req, res, next) => {
         SUM(te.horas_totales)::numeric(6,2)                      AS total_horas
       FROM tiempo_extra te
       JOIN colaboradores c ON c.id = te.colaborador_id
-      ${dept ? sql`WHERE c.departamento = ${dept}` : sql``}
+      ${deptsFilter}
       GROUP BY year, week, inicio, fin
       ORDER BY year DESC, week DESC
     `);
@@ -54,11 +80,25 @@ router.get("/semanas", requireAuth, async (req, res, next) => {
 });
 
 // GET /api/v1/tiempo-extra?departamento=X&inicio=YYYY-MM-DD&fin=YYYY-MM-DD
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", requireAuth, requireModulo("tiempo_extra"), async (req, res, next) => {
   try {
-    const dept   = req.query.departamento as string | undefined;
+    const user = req.user as AuthUser;
+    const depts = getAllowedDepts(user, "tiempo_extra");
+    const deptQuery = req.query.departamento as string | undefined;
     const inicio = req.query.inicio as string | undefined;
     const fin    = req.query.fin    as string | undefined;
+
+    if (depts !== null && depts.length === 0) {
+      return res.json({ success: true, registros: [] });
+    }
+
+    // If user requests a specific dept, verify they have access to it
+    const effectiveDept = deptQuery && (depts === null || depts.includes(deptQuery)) ? deptQuery : null;
+    const deptsFilter = effectiveDept
+      ? sql`AND c.departamento = ${effectiveDept}`
+      : depts !== null
+        ? sql`AND c.departamento = ANY(${depts})`
+        : sql``;
 
     const rows = await db.execute(sql`
       SELECT
@@ -83,7 +123,7 @@ router.get("/", requireAuth, async (req, res, next) => {
       FROM tiempo_extra te
       JOIN colaboradores c ON c.id = te.colaborador_id
       WHERE TRUE
-        ${dept   ? sql`AND c.departamento = ${dept}`    : sql``}
+        ${deptsFilter}
         ${inicio ? sql`AND te.fecha >= ${inicio}::date` : sql``}
         ${fin    ? sql`AND te.fecha <= ${fin}::date`    : sql``}
       ORDER BY te.fecha DESC, te.created_at DESC

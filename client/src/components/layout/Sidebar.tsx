@@ -16,23 +16,29 @@ import { cn } from "@client/lib/utils";
 import { useAuthStore } from "@client/stores/authStore";
 
 const NAV_ITEMS = [
-  { href: "/asistencia",          label: "Asistencia",          icon: ClipboardCheck },
-  { href: "/historial",           label: "Historial",           icon: History        },
-  { href: "/usuarios",            label: "Usuarios",            icon: Users          },
-  { href: "/colaboradores",       label: "Colaboradores",       icon: UserSquare2    },
-  { href: "/agregar-colaborador", label: "Agregar Colaborador", icon: UserPlus       },
-  { href: "/bajas",               label: "Bajas",               icon: UserMinus      },
-  { href: "/tiempo-extra",        label: "Tiempo Extra",        icon: Timer          },
-  { href: "/changelog",           label: "Novedades",           icon: Sparkles       },
-  { href: "/manual",              label: "Manual",              icon: BookOpen       },
-  { href: "/developer-manual",    label: "Dev Manual",          icon: FileCode       },
-];
+  { href: "/asistencia",          label: "Asistencia",          icon: ClipboardCheck, modulo: "asistencia"    },
+  { href: "/historial",           label: "Historial",           icon: History,        modulo: "asistencia"    },
+  { href: "/usuarios",            label: "Usuarios",            icon: Users,          modulo: "admin"         },
+  { href: "/colaboradores",       label: "Colaboradores",       icon: UserSquare2,    modulo: "colaboradores" },
+  { href: "/agregar-colaborador", label: "Agregar Colaborador", icon: UserPlus,       modulo: "colaboradores" },
+  { href: "/bajas",               label: "Bajas",               icon: UserMinus,      modulo: "colaboradores" },
+  { href: "/tiempo-extra",        label: "Tiempo Extra",        icon: Timer,          modulo: "tiempo_extra"  },
+  { href: "/changelog",           label: "Novedades",           icon: Sparkles,       modulo: null            },
+  { href: "/manual",              label: "Manual",              icon: BookOpen,       modulo: null            },
+  { href: "/developer-manual",    label: "Dev Manual",          icon: FileCode,       modulo: "admin"         },
+] as const;
 
 export function Sidebar() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, canAccess } = useAuthStore();
   const [location] = useLocation();
 
   if (!isAuthenticated) return null;
+
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.modulo === null) return true;
+    if (item.modulo === "admin") return user?.role === "admin";
+    return canAccess(item.modulo);
+  });
 
   return (
     <aside className="w-60 h-full bg-brand-navy text-white flex flex-col flex-shrink-0">
@@ -44,7 +50,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
+        {visibleItems.map((item) => {
           const active = location === item.href || location.startsWith(item.href + "/");
           return (
             <Link

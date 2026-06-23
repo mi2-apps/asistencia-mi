@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Search, Edit2, Trash2, UserPlus } from "lucide-react";
+import { Search, Edit2, Trash2, UserPlus, KeyRound } from "lucide-react";
 import { Avatar } from "@client/components/ui/Avatar";
 import { Combobox } from "@client/components/ui/Combobox";
 import { DEPARTAMENTOS_LIST, PUESTOS_LIST, TURNOS } from "@shared/constants";
@@ -23,8 +23,15 @@ interface Usuario {
   numero_empleado: string | null;
   fecha_ingreso: string | null;
   foto_perfil: string | null;
+  permisos: Record<string, string[]> | null;
   anios_en_planta: number | null;
 }
+
+const MODULOS = [
+  { key: "asistencia",    label: "Asistencia y Historial" },
+  { key: "colaboradores", label: "Colaboradores y Bajas"  },
+  { key: "tiempo_extra",  label: "Tiempo Extra"           },
+] as const;
 
 const inputCls = "w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring h-10";
 
@@ -38,12 +45,14 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   );
 }
 
-type Mode = "list" | "crear" | "editar";
+type Mode = "list" | "crear" | "editar" | "permisos";
 
 export default function Usuarios() {
-  const [mode, setMode]       = useState<Mode>("list");
-  const [editando, setEditando] = useState<Usuario | null>(null);
-  const [busqueda, setBusqueda] = useState("");
+  const [mode, setMode]           = useState<Mode>("list");
+  const [editando, setEditando]   = useState<Usuario | null>(null);
+  const [permTarget, setPermTarget] = useState<Usuario | null>(null);
+  const [permisos, setPermisos]   = useState<Record<string, string[]>>({});
+  const [busqueda, setBusqueda]   = useState("");
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery<{ usuarios: Usuario[] }>({
@@ -100,6 +109,47 @@ export default function Usuarios() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
   });
 
+  const permisosMutation = useMutation({
+    mutationFn: async ({ username, permisos }: { username: string; permisos: Record<string, string[]> }) => {
+      const r = await fetch(`/api/v1/usuarios/${username}/permisos`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ permisos }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message); }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["usuarios"] }); setMode("list"); setPermTarget(null); },
+  });
+
+  const abrirPermisos = (u: Usuario) => {
+    setPermTarget(u);
+    setPermisos(u.permisos ?? {});
+    setMode("permisos");
+  };
+
+  function toggleModulo(mod: string, checked: boolean) {
+    if (checked) setPermisos(p => ({ ...p, [mod]: ["*"] }));
+    else setPermisos(p => { const n = { ...p }; delete n[mod]; return n; });
+  }
+
+  function toggleTodos(mod: string, checked: boolean) {
+    if (checked) setPermisos(p => ({ ...p, [mod]: ["*"] }));
+    else setPermisos(p => ({ ...p, [mod]: [] }));
+  }
+
+  function toggleDept(mod: string, dept: string, checked: boolean) {
+    setPermisos(p => {
+      const current = p[mod] ?? [];
+      if (current.includes("*")) {
+        const allExcept = [...DEPARTAMENTOS_LIST].filter(d => d !== dept);
+        return { ...p, [mod]: checked ? [...DEPARTAMENTOS_LIST] : allExcept };
+      }
+      if (checked) return { ...p, [mod]: [...current, dept] };
+      return { ...p, [mod]: current.filter(d => d !== dept) };
+    });
+  }
+
   const abrirEditar = (u: Usuario) => {
     setEditando(u);
     editForm.reset({
@@ -117,6 +167,92 @@ export default function Usuarios() {
   };
 
   if (isLoading) return <div className="p-8 text-muted-foreground text-sm">Cargando...</div>;
+
+  if (mode === "permisos" && permTarget) {
+    return (
+      <div className="p-6 max-w-2xl">
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => setMode("list")} className="text-sm text-muted-foreground hover:text-foreground">← Volver</button>
+          <h2 className="text-xl font-semibold">Permisos — <span className="font-mono text-base">{permTarget.username}</span></h2>
+        </div>
+
+        <p className="text-sm text-muted-foreground mb-5">
+          Activa los módulos a los que este usuario puede acceder y selecciona los departamentos que puede ver.
+        </p>
+
+        <div className="space-y-5">
+          {MODULOS.map(({ key, label }) => {
+            const enabled = key in permisos;
+            const depts   = permisos[key] ?? [];
+            const todos   = depts.includes("*");
+
+            return (
+              <div key={key} className="border border-border rounded-xl overflow-hidden">
+                {/* Header del módulo */}
+                <label className="flex items-center justify-between px-4 py-3 bg-muted/40 cursor-pointer select-none">
+                  <span className="font-medium text-sm">{label}</span>
+                  <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={(e) => toggleModulo(key, e.target.checked)}
+                    className="w-4 h-4 accent-primary"
+                  />
+                </label>
+
+                {/* Departamentos (solo si módulo activo) */}
+                {enabled && (
+                  <div className="px-4 py-3 space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={todos}
+                        onChange={(e) => toggleTodos(key, e.target.checked)}
+                        className="w-4 h-4 accent-primary"
+                      />
+                      Todos los departamentos
+                    </label>
+
+                    {!todos && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 pl-1 max-h-48 overflow-y-auto">
+                        {DEPARTAMENTOS_LIST.map((dept) => (
+                          <label key={dept} className="flex items-center gap-1.5 text-xs cursor-pointer hover:text-foreground text-muted-foreground py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={depts.includes(dept)}
+                              onChange={(e) => toggleDept(key, dept, e.target.checked)}
+                              className="w-3.5 h-3.5 accent-primary flex-shrink-0"
+                            />
+                            <span className="truncate">{dept}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {permisosMutation.error && (
+          <p className="text-sm text-destructive mt-4">{(permisosMutation.error as Error).message}</p>
+        )}
+
+        <div className="flex gap-3 pt-5">
+          <button type="button" onClick={() => setMode("list")} className="px-5 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={() => permisosMutation.mutate({ username: permTarget.username, permisos })}
+            disabled={permisosMutation.isPending}
+            className="px-5 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            {permisosMutation.isPending ? "Guardando..." : "Guardar Permisos"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (mode === "crear") {
     return (
@@ -230,9 +366,12 @@ export default function Usuarios() {
                 </div>
               </div>
               <div className="flex gap-1 flex-shrink-0">
-                <button onClick={() => abrirEditar(u)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Edit2 size={13} /></button>
+                <button onClick={() => abrirEditar(u)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Editar"><Edit2 size={13} /></button>
+                {u.role !== "admin" && (
+                  <button onClick={() => abrirPermisos(u)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Permisos"><KeyRound size={13} /></button>
+                )}
                 {u.username !== "admin" && (
-                  <button onClick={() => { if (confirm(`¿Eliminar a ${u.fullname}?`)) deleteMutation.mutate(u.username); }} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"><Trash2 size={13} /></button>
+                  <button onClick={() => { if (confirm(`¿Eliminar a ${u.fullname}?`)) deleteMutation.mutate(u.username); }} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive" title="Eliminar"><Trash2 size={13} /></button>
                 )}
               </div>
             </div>
@@ -240,6 +379,19 @@ export default function Usuarios() {
               <p><span className="font-medium text-foreground">Rol: </span><span className="capitalize">{u.role}</span></p>
               {u.departamento && <p><span className="font-medium text-foreground">Depto: </span>{u.departamento}</p>}
               <p><span className="font-medium text-foreground">Antigüedad: </span>{calcularAntiguedad(u.fecha_ingreso)}</p>
+              {u.role !== "admin" && (
+                <p>
+                  <span className="font-medium text-foreground">Acceso: </span>
+                  {!u.permisos || Object.keys(u.permisos).length === 0
+                    ? <span className="text-destructive/70">Sin permisos</span>
+                    : Object.entries(u.permisos).map(([mod, depts]) => {
+                        const label = mod === "asistencia" ? "Asist." : mod === "colaboradores" ? "Colab." : "T.Extra";
+                        const depLabel = depts.includes("*") ? "todos" : depts.length === 0 ? "ninguno" : `${depts.length} dpto${depts.length !== 1 ? "s" : ""}`;
+                        return <span key={mod} className="mr-1">{label} ({depLabel})</span>;
+                      })
+                  }
+                </p>
+              )}
             </div>
           </div>
         ))}

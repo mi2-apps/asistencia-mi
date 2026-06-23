@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   index,
   check,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { sql, relations } from "drizzle-orm";
 
@@ -30,6 +31,7 @@ export const usuarios = pgTable("usuarios", {
   fecha_ingreso:   date("fecha_ingreso"),
   foto_perfil:     text("foto_perfil"),
   nextcloud_sub:   varchar("nextcloud_sub", { length: 255 }).unique(),
+  permisos:        jsonb("permisos").$type<Record<string, string[]>>(),
   created_at:      timestamp("created_at").defaultNow().notNull(),
   updated_at:      timestamp("updated_at").defaultNow().notNull(),
 });

@@ -106,6 +106,7 @@ async function runMigrations() {
         ON colaboradores (numero_empleado)
         WHERE numero_empleado IS NOT NULL;
     `);
+    await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos JSONB`);
     console.log("[asistencia-mi] migrations ok");
   } catch (err) {
     console.error("[asistencia-mi] migration error", err);

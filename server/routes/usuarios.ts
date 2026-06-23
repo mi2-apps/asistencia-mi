@@ -7,7 +7,8 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "../db.js";
 import { usuarios } from "../../shared/schema.js";
 import { usuarioCreateSchema, usuarioUpdateSchema } from "../../shared/validators.js";
-import { requireAuth, validateBody } from "../middleware/auth.js";
+import { requireAuth, requireAdmin, validateBody } from "../middleware/auth.js";
+import type { AuthUser } from "../middleware/auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, "../../uploads");
@@ -55,6 +56,7 @@ router.get("/", requireAuth, async (_req, res, next) => {
         numero_empleado: usuarios.numero_empleado,
         fecha_ingreso:   usuarios.fecha_ingreso,
         foto_perfil:     usuarios.foto_perfil,
+        permisos:        usuarios.permisos,
         created_at:      usuarios.created_at,
         anios_en_planta: sql<number>`DATE_PART('year', AGE(CURRENT_DATE, ${usuarios.fecha_ingreso}))::int`,
       })
@@ -197,6 +199,31 @@ router.post("/:username/foto", requireAuth, upload.single("foto"), async (req, r
       .where(eq(usuarios.username, username));
 
     res.json({ success: true, foto_perfil: req.file.filename });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/v1/usuarios/:username/permisos — solo admin
+router.put("/:username/permisos", requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const { permisos } = req.body as { permisos: unknown };
+
+    if (typeof permisos !== "object" || permisos === null || Array.isArray(permisos)) {
+      return res.status(400).json({ success: false, message: "Permisos inválidos" });
+    }
+
+    const [row] = await db
+      .update(usuarios)
+      .set({ permisos: permisos as Record<string, string[]>, updated_at: new Date() })
+      .where(eq(usuarios.username, username))
+      .returning({ id: usuarios.id, username: usuarios.username, permisos: usuarios.permisos });
+
+    if (!row) {
+      return res.status(404).json({ success: false, code: "NOT_FOUND", message: "Usuario no encontrado" });
+    }
+    res.json({ success: true, usuario: row });
   } catch (err) {
     next(err);
   }

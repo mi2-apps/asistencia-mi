@@ -3,13 +3,25 @@ import { sql, eq, and, gte, lte } from "drizzle-orm";
 import { db, pool } from "../db.js";
 import { asistencia, colaboradores } from "../../shared/schema.js";
 import { asistenciaSchema } from "../../shared/validators.js";
-import { requireAuth, validateBody } from "../middleware/auth.js";
+import { requireAuth, requireModulo, getAllowedDepts, validateBody } from "../middleware/auth.js";
+import type { AuthUser } from "../middleware/auth.js";
 
 const router = Router();
 
 // GET /api/v1/asistencia/reporte — all active colaboradores with today's attendance
-router.get("/reporte", requireAuth, async (_req, res, next) => {
+router.get("/reporte", requireAuth, requireModulo("asistencia"), async (req, res, next) => {
   try {
+    const user = req.user as AuthUser;
+    const depts = getAllowedDepts(user, "asistencia");
+
+    if (depts !== null && depts.length === 0) {
+      return res.json({ success: true, reporte: [] });
+    }
+
+    const deptsFilter = depts === null
+      ? sql``
+      : sql`AND c.departamento = ANY(${depts})`;
+
     const rows = await db.execute(sql`
       SELECT
         c.id            AS colaborador_id,
@@ -30,6 +42,7 @@ router.get("/reporte", requireAuth, async (_req, res, next) => {
       LEFT JOIN asistencia a
              ON a.colaborador_id = c.id AND a.fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date
       WHERE c.activo = TRUE
+        ${deptsFilter}
       ORDER BY c.numero_empleado
     `);
     res.json({ success: true, reporte: rows.rows });
@@ -39,12 +52,22 @@ router.get("/reporte", requireAuth, async (_req, res, next) => {
 });
 
 // GET /api/v1/asistencia/semana?inicio=YYYY-MM-DD&fin=YYYY-MM-DD
-router.get("/semana", requireAuth, async (req, res, next) => {
+router.get("/semana", requireAuth, requireModulo("asistencia"), async (req, res, next) => {
   try {
     const { inicio, fin } = req.query;
     if (!inicio || !fin) {
       return res.status(400).json({ success: false, message: "Se requieren inicio y fin (YYYY-MM-DD)" });
     }
+
+    const user = req.user as AuthUser;
+    const depts = getAllowedDepts(user, "asistencia");
+
+    if (depts !== null && depts.length === 0) {
+      return res.json({ success: true, registros: [] });
+    }
+
+    const deptsFilter = depts === null ? sql`` : sql`AND c.departamento = ANY(${depts})`;
+
     const rows = await db.execute(sql`
       SELECT
         c.id            AS colaborador_id,
@@ -68,6 +91,7 @@ router.get("/semana", requireAuth, async (req, res, next) => {
             AND a.fecha >= ${inicio}::date
             AND a.fecha <= ${fin}::date
       WHERE c.activo = TRUE
+        ${deptsFilter}
       ORDER BY c.numero_empleado, a.fecha
     `);
     res.json({ success: true, registros: rows.rows });

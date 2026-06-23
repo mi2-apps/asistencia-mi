@@ -2,11 +2,12 @@ import { Router } from "express";
 import multer from "multer";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { db } from "../db.js";
 import { colaboradores } from "../../shared/schema.js";
 import { colaboradorSchema, bajaSchema, reactivarSchema } from "../../shared/validators.js";
-import { requireAuth, validateBody } from "../middleware/auth.js";
+import { requireAuth, requireModulo, getAllowedDepts, validateBody } from "../middleware/auth.js";
+import type { AuthUser } from "../middleware/auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, "../../uploads");
@@ -29,9 +30,20 @@ const upload = multer({
 const router = Router();
 
 // GET /api/v1/colaboradores?activo=true|false
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", requireAuth, requireModulo("colaboradores"), async (req, res, next) => {
   try {
     const soloActivos = req.query.activo !== "false";
+    const user = req.user as AuthUser;
+    const depts = getAllowedDepts(user, "colaboradores");
+
+    if (depts !== null && depts.length === 0) {
+      return res.json({ success: true, colaboradores: [] });
+    }
+
+    const whereClause = depts === null
+      ? eq(colaboradores.activo, soloActivos)
+      : and(eq(colaboradores.activo, soloActivos), inArray(colaboradores.departamento, depts))!;
+
     const rows = await db
       .select({
         id:              colaboradores.id,
@@ -52,7 +64,7 @@ router.get("/", requireAuth, async (req, res, next) => {
         anios_en_planta: sql<number>`DATE_PART('year', AGE(CURRENT_DATE, ${colaboradores.fecha_ingreso}))::int`,
       })
       .from(colaboradores)
-      .where(eq(colaboradores.activo, soloActivos))
+      .where(whereClause)
       .orderBy(colaboradores.created_at);
 
     res.json({ success: true, colaboradores: rows });
