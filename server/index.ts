@@ -89,6 +89,33 @@ app.use((err: Error & { status?: number }, _req: express.Request, res: express.R
   res.status(status).json({ success: false, message: err.message || "Error interno del servidor" });
 });
 
-app.listen(PORT, () => {
-  console.log(`[asistencia-mi] listening on :${PORT}`);
+// ── Auto-migrate: ensure schema is up-to-date ─────────────────────────────────
+async function runMigrations() {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      ALTER TABLE colaboradores
+        ADD COLUMN IF NOT EXISTS foto_perfil   TEXT,
+        ADD COLUMN IF NOT EXISTS activo        BOOLEAN NOT NULL DEFAULT true,
+        ADD COLUMN IF NOT EXISTS fecha_baja    DATE,
+        ADD COLUMN IF NOT EXISTS tipo_baja     VARCHAR(60),
+        ADD COLUMN IF NOT EXISTS motivo_baja   TEXT;
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS colaboradores_numero_empleado_unique_idx
+        ON colaboradores (numero_empleado)
+        WHERE numero_empleado IS NOT NULL;
+    `);
+    console.log("[asistencia-mi] migrations ok");
+  } catch (err) {
+    console.error("[asistencia-mi] migration error", err);
+  } finally {
+    client.release();
+  }
+}
+
+runMigrations().then(() => {
+  app.listen(PORT, () => {
+    console.log(`[asistencia-mi] listening on :${PORT}`);
+  });
 });
