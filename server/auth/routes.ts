@@ -120,7 +120,7 @@ router.post("/dev-login", loginLimiter, async (req, res, next) => {
     if (!username || !password) return res.redirect("/auth/login?error=Usuario+y+contraseña+requeridos");
 
     const [user] = await db
-      .select({ id: usuarios.id, username: usuarios.username, password_hash: usuarios.password_hash, role: usuarios.role })
+      .select({ id: usuarios.id, username: usuarios.username, password_hash: usuarios.password_hash, role: usuarios.role, permisos: usuarios.permisos })
       .from(usuarios)
       .where(eq(usuarios.username, username.trim().toLowerCase()));
 
@@ -129,7 +129,7 @@ router.post("/dev-login", loginLimiter, async (req, res, next) => {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.redirect("/auth/login?error=Usuario+o+contraseña+incorrectos");
 
-    req.login({ id: user.id, username: user.username, role: user.role }, (err) => {
+    req.login({ id: user.id, username: user.username, role: user.role, permisos: user.permisos ?? null }, (err) => {
       if (err) return next(err);
       res.redirect("/");
     });
