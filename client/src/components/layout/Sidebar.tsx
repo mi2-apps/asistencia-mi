@@ -16,16 +16,16 @@ import { cn } from "@client/lib/utils";
 import { useAuthStore } from "@client/stores/authStore";
 
 const NAV_ITEMS = [
-  { href: "/asistencia",          label: "Asistencia",          icon: ClipboardCheck, adminOnly: false },
-  { href: "/historial",           label: "Historial",           icon: History,        adminOnly: false },
-  { href: "/usuarios",            label: "Usuarios",            icon: Users,          adminOnly: true  },
-  { href: "/colaboradores",       label: "Colaboradores",       icon: UserSquare2,    adminOnly: true  },
-  { href: "/agregar-colaborador", label: "Agregar Colaborador", icon: UserPlus,       adminOnly: true  },
-  { href: "/bajas",               label: "Bajas",               icon: UserMinus,      adminOnly: true  },
-  { href: "/tiempo-extra",       label: "Tiempo Extra",        icon: Timer,          adminOnly: true  },
-  { href: "/changelog",           label: "Novedades",           icon: Sparkles,       adminOnly: false },
-  { href: "/manual",              label: "Manual",              icon: BookOpen,       adminOnly: false },
-  { href: "/developer-manual",   label: "Dev Manual",          icon: FileCode,       adminOnly: true  },
+  { href: "/asistencia",          label: "Asistencia",          icon: ClipboardCheck },
+  { href: "/historial",           label: "Historial",           icon: History        },
+  { href: "/usuarios",            label: "Usuarios",            icon: Users          },
+  { href: "/colaboradores",       label: "Colaboradores",       icon: UserSquare2    },
+  { href: "/agregar-colaborador", label: "Agregar Colaborador", icon: UserPlus       },
+  { href: "/bajas",               label: "Bajas",               icon: UserMinus      },
+  { href: "/tiempo-extra",        label: "Tiempo Extra",        icon: Timer          },
+  { href: "/changelog",           label: "Novedades",           icon: Sparkles       },
+  { href: "/manual",              label: "Manual",              icon: BookOpen       },
+  { href: "/developer-manual",    label: "Dev Manual",          icon: FileCode       },
 ];
 
 export function Sidebar() {
@@ -44,7 +44,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.filter((item) => !item.adminOnly || user?.role === "admin").map((item) => {
+        {NAV_ITEMS.map((item) => {
           const active = location === item.href || location.startsWith(item.href + "/");
           return (
             <Link
