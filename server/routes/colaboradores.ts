@@ -6,7 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "../db.js";
 import { colaboradores } from "../../shared/schema.js";
 import { colaboradorSchema, bajaSchema, reactivarSchema } from "../../shared/validators.js";
-import { requireAuth, requireAdmin, validateBody } from "../middleware/auth.js";
+import { requireAuth, validateBody } from "../middleware/auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, "../../uploads");
@@ -29,7 +29,7 @@ const upload = multer({
 const router = Router();
 
 // GET /api/v1/colaboradores?activo=true|false
-router.get("/", requireAuth, requireAdmin, async (req, res, next) => {
+router.get("/", requireAuth, async (req, res, next) => {
   try {
     const soloActivos = req.query.activo !== "false";
     const rows = await db
@@ -62,7 +62,7 @@ router.get("/", requireAuth, requireAdmin, async (req, res, next) => {
 });
 
 // POST /api/v1/colaboradores
-router.post("/", requireAuth, requireAdmin, validateBody(colaboradorSchema), async (req, res, next) => {
+router.post("/", requireAuth, validateBody(colaboradorSchema), async (req, res, next) => {
   try {
     const data = colaboradorSchema.parse(req.body);
     const [row] = await db
@@ -88,7 +88,7 @@ router.post("/", requireAuth, requireAdmin, validateBody(colaboradorSchema), asy
 });
 
 // PUT /api/v1/colaboradores/:id
-router.put("/:id", requireAuth, requireAdmin, validateBody(colaboradorSchema), async (req, res, next) => {
+router.put("/:id", requireAuth, validateBody(colaboradorSchema), async (req, res, next) => {
   try {
     const id   = parseInt(req.params.id, 10);
     const data = colaboradorSchema.parse(req.body);
@@ -121,7 +121,7 @@ router.put("/:id", requireAuth, requireAdmin, validateBody(colaboradorSchema), a
 });
 
 // PATCH /api/v1/colaboradores/:id/estado — dar de baja / reactivar
-router.patch("/:id/estado", requireAuth, requireAdmin, async (req, res, next) => {
+router.patch("/:id/estado", requireAuth, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
 
@@ -165,7 +165,7 @@ router.patch("/:id/estado", requireAuth, requireAdmin, async (req, res, next) =>
 });
 
 // DELETE /api/v1/colaboradores/:id
-router.delete("/:id", requireAuth, requireAdmin, async (req, res, next) => {
+router.delete("/:id", requireAuth, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     const [row] = await db

@@ -7,7 +7,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "../db.js";
 import { usuarios } from "../../shared/schema.js";
 import { usuarioCreateSchema, usuarioUpdateSchema } from "../../shared/validators.js";
-import { requireAuth, requireAdmin, validateBody } from "../middleware/auth.js";
+import { requireAuth, validateBody } from "../middleware/auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, "../../uploads");
@@ -39,7 +39,7 @@ function generarUsername(nombre: string, apellido: string): string {
 }
 
 // GET /api/v1/usuarios
-router.get("/", requireAuth, requireAdmin, async (_req, res, next) => {
+router.get("/", requireAuth, async (_req, res, next) => {
   try {
     const rows = await db
       .select({
@@ -68,7 +68,7 @@ router.get("/", requireAuth, requireAdmin, async (_req, res, next) => {
 });
 
 // POST /api/v1/usuarios
-router.post("/", requireAuth, requireAdmin, validateBody(usuarioCreateSchema), async (req, res, next) => {
+router.post("/", requireAuth, validateBody(usuarioCreateSchema), async (req, res, next) => {
   try {
     const data = usuarioCreateSchema.parse(req.body);
 
@@ -133,7 +133,7 @@ router.post("/", requireAuth, requireAdmin, validateBody(usuarioCreateSchema), a
 });
 
 // PUT /api/v1/usuarios/:username
-router.put("/:username", requireAuth, requireAdmin, validateBody(usuarioUpdateSchema), async (req, res, next) => {
+router.put("/:username", requireAuth, validateBody(usuarioUpdateSchema), async (req, res, next) => {
   try {
     const { username } = req.params;
     const data = usuarioUpdateSchema.parse(req.body);
@@ -203,7 +203,7 @@ router.post("/:username/foto", requireAuth, upload.single("foto"), async (req, r
 });
 
 // DELETE /api/v1/usuarios/:username
-router.delete("/:username", requireAuth, requireAdmin, async (req, res, next) => {
+router.delete("/:username", requireAuth, async (req, res, next) => {
   try {
     const { username } = req.params;
     if (username === "admin") {

@@ -3,7 +3,7 @@ import { sql, eq, and, gte, lte } from "drizzle-orm";
 import { db, pool } from "../db.js";
 import { asistencia, colaboradores } from "../../shared/schema.js";
 import { asistenciaSchema } from "../../shared/validators.js";
-import { requireAuth, requireAdmin, validateBody } from "../middleware/auth.js";
+import { requireAuth, validateBody } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -123,7 +123,7 @@ router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, n
 });
 
 // DELETE /api/v1/asistencia/hoy — clear today's attendance (admin only)
-router.delete("/hoy", requireAuth, requireAdmin, async (_req, res, next) => {
+router.delete("/hoy", requireAuth, async (_req, res, next) => {
   try {
     await db.execute(sql`DELETE FROM asistencia WHERE fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date`);
     res.status(204).send();

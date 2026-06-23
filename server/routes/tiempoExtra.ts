@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db.js";
 import { tiempoExtra } from "../../shared/schema.js";
 import { tiempoExtraSchema } from "../../shared/validators.js";
-import { requireAuth, requireAdmin, validateBody } from "../middleware/auth.js";
+import { requireAuth, validateBody } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -122,7 +122,7 @@ router.post("/", requireAuth, validateBody(tiempoExtraSchema), async (req, res, 
 });
 
 // DELETE /api/v1/tiempo-extra/:id — eliminar (admin only)
-router.delete("/:id", requireAuth, requireAdmin, async (req, res, next) => {
+router.delete("/:id", requireAuth, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     if (!id) return res.status(400).json({ success: false, message: "ID inválido" });
