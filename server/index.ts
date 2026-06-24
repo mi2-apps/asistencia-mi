@@ -16,6 +16,7 @@ import usuariosRouter from "./routes/usuarios.js";
 import colaboradoresRouter from "./routes/colaboradores.js";
 import asistenciaRouter from "./routes/asistencia.js";
 import tiempoExtraRouter from "./routes/tiempoExtra.js";
+import { startAgent } from "./agent.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -120,5 +121,6 @@ async function runMigrations() {
 runMigrations().then(() => {
   app.listen(PORT, () => {
     console.log(`[asistencia-mi] listening on :${PORT}`);
+    startAgent(); // background — never awaited
   });
 });
