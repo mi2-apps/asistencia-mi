@@ -65,7 +65,7 @@ export default function Historial() {
     const d = new Date(lunes); d.setDate(lunes.getDate() + i); return d;
   });
 
-  const { data, isLoading } = useQuery<{ registros: RegistroSemana[] }>({
+  const { data, isLoading } = useQuery<{ registros: RegistroSemana[], bajas_count: number }>({
     queryKey: ["historial", inicio, fin],
     queryFn: () => fetch(`/api/v1/asistencia/semana?inicio=${inicio}&fin=${fin}`, { credentials: "include" }).then((r) => r.json()),
   });
@@ -104,16 +104,29 @@ export default function Historial() {
     return lista;
   }, [byColaborador, busqueda, filtroDept, filtroTurno]);
 
-  const totales = useMemo(() => {
+  const kpis = useMemo(() => {
     let presentes = 0, inasistencias = 0;
-    for (const { dias: dm } of byColaborador) {
+    const faltasPorDept = new Map<string, number>();
+    for (const { info, dias: dm } of colaboradoresFiltrados) {
       for (const r of dm.values()) {
         if (r.estado === "Presente") presentes++;
-        else if (r.estado === "Inasistencia") inasistencias++;
+        else if (r.estado === "Inasistencia") {
+          inasistencias++;
+          const dept = info.departamento ?? "Sin dept";
+          faltasPorDept.set(dept, (faltasPorDept.get(dept) ?? 0) + 1);
+        }
       }
     }
-    return { presentes, inasistencias };
-  }, [byColaborador]);
+    const totalRegistros = presentes + inasistencias;
+    const promedio = totalRegistros === 0 ? 0 : Math.round((presentes / totalRegistros) * 100);
+    const sinRegistrar = colaboradoresFiltrados.filter(({ dias: dm }) => dm.size === 0).length;
+    let deptMasFaltas = "—";
+    let maxFaltas = 0;
+    for (const [dept, count] of faltasPorDept) {
+      if (count > maxFaltas) { maxFaltas = count; deptMasFaltas = dept; }
+    }
+    return { activos: byColaborador.length, bajas: data?.bajas_count ?? 0, presentes, inasistencias, sinRegistrar, promedio, totalRegistros, deptMasFaltas };
+  }, [colaboradoresFiltrados, byColaborador, data]);
 
   return (
     <div className="p-6">
@@ -179,14 +192,60 @@ export default function Historial() {
         </div>
       </div>
 
-      {/* Summary pills */}
-      <div className="flex gap-3 mb-4">
-        <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-          ✓ {totales.presentes} presentes
-        </span>
-        <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
-          ✗ {totales.inasistencias} inasistencias
-        </span>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
+        {/* Colaboradores */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Colaboradores</p>
+          <div className="flex gap-4">
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground uppercase">Activos</p>
+              <p className="text-2xl font-bold text-blue-600">{kpis.activos}</p>
+            </div>
+            <div className="w-px bg-border" />
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground uppercase">Bajas</p>
+              <p className="text-2xl font-bold text-slate-500">{kpis.bajas}</p>
+            </div>
+          </div>
+        </div>
+        {/* Asistencia promedio */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Asistencia Promedio</p>
+          <p className="text-2xl font-bold text-green-600">{kpis.promedio}%</p>
+          <p className="text-xs text-muted-foreground mt-1">{kpis.presentes} presentes de {kpis.totalRegistros} registros</p>
+        </div>
+        {/* Inasistencias */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Inasistencias del Periodo</p>
+          <p className="text-2xl font-bold text-red-600">{kpis.inasistencias}</p>
+          <p className="text-xs text-muted-foreground mt-1">en el periodo seleccionado</p>
+        </div>
+        {/* Desglose */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Desglose de Asistencia</p>
+          <div className="flex gap-3">
+            <div className="text-center">
+              <p className="text-[10px] text-green-600 uppercase font-medium">Presentes</p>
+              <p className="text-lg font-bold text-green-600">{kpis.presentes}</p>
+            </div>
+            <div className="w-px bg-border" />
+            <div className="text-center">
+              <p className="text-[10px] text-red-500 uppercase font-medium">Ausentes</p>
+              <p className="text-lg font-bold text-red-500">{kpis.inasistencias}</p>
+            </div>
+            <div className="w-px bg-border" />
+            <div className="text-center">
+              <p className="text-[10px] text-amber-500 uppercase font-medium">Sin Reg.</p>
+              <p className="text-lg font-bold text-amber-500">{kpis.sinRegistrar}</p>
+            </div>
+          </div>
+        </div>
+        {/* Depto con más faltas */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Depto. con más faltas</p>
+          <p className="text-lg font-bold text-foreground truncate">{kpis.deptMasFaltas}</p>
+        </div>
       </div>
 
       {/* Table */}

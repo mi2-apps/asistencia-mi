@@ -59,32 +59,36 @@ router.get("/semana", requireAuth, requireModulo("asistencia"), async (req, res,
       return res.status(400).json({ success: false, message: "Se requieren inicio y fin (YYYY-MM-DD)" });
     }
 
-    const rows = await db.execute(sql`
-      SELECT
-        c.id            AS colaborador_id,
-        'colaborador'   AS persona_tipo,
-        c.numero_empleado,
-        c.nombre,
-        c.apellido,
-        c.nombre || ' ' || c.apellido AS fullname,
-        c.puesto,
-        c.departamento,
-        c.turno,
-        c.foto_perfil,
-        a.fecha,
-        INITCAP(a.estado) AS estado,
-        a.tipo_inasistencia,
-        a.notas,
-        a.created_at    AS hora
-      FROM colaboradores c
-      LEFT JOIN asistencia a
-             ON a.colaborador_id = c.id
-            AND a.fecha >= ${inicio}::date
-            AND a.fecha <= ${fin}::date
-      WHERE c.activo = TRUE
-      ORDER BY c.numero_empleado, a.fecha
-    `);
-    res.json({ success: true, registros: rows.rows });
+    const [rows, bajasResult] = await Promise.all([
+      db.execute(sql`
+        SELECT
+          c.id            AS colaborador_id,
+          'colaborador'   AS persona_tipo,
+          c.numero_empleado,
+          c.nombre,
+          c.apellido,
+          c.nombre || ' ' || c.apellido AS fullname,
+          c.puesto,
+          c.departamento,
+          c.turno,
+          c.foto_perfil,
+          a.fecha,
+          INITCAP(a.estado) AS estado,
+          a.tipo_inasistencia,
+          a.notas,
+          a.created_at    AS hora
+        FROM colaboradores c
+        LEFT JOIN asistencia a
+               ON a.colaborador_id = c.id
+              AND a.fecha >= ${inicio}::date
+              AND a.fecha <= ${fin}::date
+        WHERE c.activo = TRUE
+        ORDER BY c.numero_empleado, a.fecha
+      `),
+      db.execute(sql`SELECT COUNT(*)::int AS count FROM colaboradores WHERE activo = FALSE`),
+    ]);
+    const bajas_count = (bajasResult.rows[0] as { count: number }).count ?? 0;
+    res.json({ success: true, registros: rows.rows, bajas_count });
   } catch (err) {
     next(err);
   }
