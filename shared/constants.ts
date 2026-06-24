@@ -1,5 +1,5 @@
 export const DEPARTAMENTOS_LIST = [
-  "Incoming", "Sorting", "FFT", "Paletizado", "Almacen", "Calidad",
+  "Incoming", "Sorting", "FFT", "Almacen", "Calidad",
   "Shipping", "Open Cell", "Auditoria", "HR", "Finance", "Traffic",
   "Maintenance", "B2B (Shipping)", "B2C (Shipping)", "ADMINISTRACION",
   "COMPRAS", "DESARROLLO DE SOFTWARE", "DISEÑO", "SISTEMAS",
@@ -13,8 +13,7 @@ export const PUESTOS_LIST = [
   "Supervisor de Calidad", "Gerente de Calidad", "Auditor de Calidad",
   "Coordinador de Calidad", "Analista de Calidad", "Inspector de Incoming",
   "Lider de Incoming", "Supervisor de Incoming", "Inspector de Sorting",
-  "Lider de Sorting", "Supervisor de Sorting", "Operador de Paletizado",
-  "Lider de Paletizado", "Supervisor de Paletizado", "Almacenista",
+  "Lider de Sorting", "Supervisor de Sorting", "Almacenista",
   "Lider de Almacen", "Supervisor de Almacen", "Auxiliar de Almacen",
   "Operador de Shipping", "Lider de Shipping", "Supervisor de Shipping",
   "Coordinador de Shipping", "Tecnico de Open Cell", "Lider de Open Cell",
@@ -47,7 +46,7 @@ export const DEPT_COLORS: Record<string, string> = {
   "Incoming":               "#3B82F6",
   "Sorting":                "#8B5CF6",
   "FFT":                    "#06B6D4",
-  "Paletizado":             "#F59E0B",
+
   "Almacen":                "#10B981",
   "Calidad":                "#EF4444",
   "Shipping":               "#F97316",
