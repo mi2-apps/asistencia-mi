@@ -59,15 +59,6 @@ router.get("/semana", requireAuth, requireModulo("asistencia"), async (req, res,
       return res.status(400).json({ success: false, message: "Se requieren inicio y fin (YYYY-MM-DD)" });
     }
 
-    const user = req.user as AuthUser;
-    const depts = getAllowedDepts(user, "asistencia");
-
-    if (depts !== null && depts.length === 0) {
-      return res.json({ success: true, registros: [] });
-    }
-
-    const deptsFilter = depts === null ? sql`` : sql`AND c.departamento = ANY(${depts})`;
-
     const rows = await db.execute(sql`
       SELECT
         c.id            AS colaborador_id,
@@ -91,7 +82,6 @@ router.get("/semana", requireAuth, requireModulo("asistencia"), async (req, res,
             AND a.fecha >= ${inicio}::date
             AND a.fecha <= ${fin}::date
       WHERE c.activo = TRUE
-        ${deptsFilter}
       ORDER BY c.numero_empleado, a.fecha
     `);
     res.json({ success: true, registros: rows.rows });

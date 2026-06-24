@@ -4,7 +4,6 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { cn, formatFecha, toLocalISO } from "@client/lib/utils";
 import { Avatar } from "@client/components/ui/Avatar";
 import { TIPOS_INASISTENCIA, DEPARTAMENTOS_LIST } from "@shared/constants";
-import { useAuthStore } from "@client/stores/authStore";
 
 interface RegistroSemana {
   colaborador_id: number;
@@ -50,12 +49,7 @@ function toISO(d: Date) {
 }
 
 export default function Historial() {
-  const { allowedDepts } = useAuthStore();
-  const deptList = useMemo(() => {
-    const allowed = allowedDepts("asistencia");
-    if (allowed === null) return [...DEPARTAMENTOS_LIST];
-    return [...DEPARTAMENTOS_LIST].filter((d) => allowed.includes(d));
-  }, [allowedDepts]);
+  const deptList = [...DEPARTAMENTOS_LIST];
 
   const [offset, setOffset]     = useState(0);
   const [busqueda, setBusqueda] = useState("");
