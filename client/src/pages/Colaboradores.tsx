@@ -10,6 +10,7 @@ import { DEPARTAMENTOS_LIST, DEPT_COLORS, PUESTOS_LIST, TURNOS, TIPOS_BAJA } fro
 import { colaboradorSchema } from "@shared/validators";
 import type { ColaboradorInput } from "@shared/validators";
 import { calcularAntiguedad, formatFecha, cn } from "@client/lib/utils";
+import { useAuthStore } from "@client/stores/authStore";
 
 interface Colaborador {
   id: number;
@@ -39,6 +40,13 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 export default function Colaboradores() {
+  const { allowedDepts } = useAuthStore();
+  const deptCards = useMemo(() => {
+    const allowed = allowedDepts("colaboradores");
+    if (allowed === null) return [...DEPARTAMENTOS_LIST];
+    return [...DEPARTAMENTOS_LIST].filter((d) => allowed.includes(d));
+  }, [allowedDepts]);
+
   const [deptActual, setDeptActual]       = useState<string | null>(null);
   const [busqueda, setBusqueda]           = useState("");
   const [editando, setEditando]           = useState<Colaborador | null>(null);
@@ -151,7 +159,7 @@ export default function Colaboradores() {
 
       {!deptActual && !busqueda ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {DEPARTAMENTOS_LIST.map((dept) => (
+          {deptCards.map((dept) => (
             <DeptCard
               key={dept}
               nombre={dept}

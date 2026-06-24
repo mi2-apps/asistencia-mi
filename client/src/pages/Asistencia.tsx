@@ -33,7 +33,12 @@ export default function Asistencia() {
   const [inasistenciaModal, setModal]     = useState<ReporteRow | null>(null);
   const [tipoSel, setTipoSel]             = useState("");
   const [notas, setNotas]                 = useState("");
-  const { user }                          = useAuthStore();
+  const { user, allowedDepts }            = useAuthStore();
+  const deptCards = useMemo(() => {
+    const allowed = allowedDepts("asistencia");
+    if (allowed === null) return [...DEPARTAMENTOS_LIST];
+    return [...DEPARTAMENTOS_LIST].filter((d) => allowed.includes(d));
+  }, [allowedDepts]);
   const qc                                = useQueryClient();
 
   const { data, isLoading } = useQuery({ queryKey: ["asistencia"], queryFn: fetchReporte, refetchInterval: 60_000 });
@@ -41,7 +46,7 @@ export default function Asistencia() {
 
   const deptStats = useMemo(() => {
     const m = new Map<string, { presentes: number; inasistencias: number; sinRegistro: number }>();
-    for (const dept of DEPARTAMENTOS_LIST) m.set(dept, { presentes: 0, inasistencias: 0, sinRegistro: 0 });
+    for (const dept of deptCards) m.set(dept, { presentes: 0, inasistencias: 0, sinRegistro: 0 });
     for (const r of reporte) {
       const s = m.get(r.departamento);
       if (!s) continue;
@@ -159,7 +164,7 @@ export default function Asistencia() {
 
       {!deptActual ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {DEPARTAMENTOS_LIST.map((dept) => {
+          {deptCards.map((dept) => {
             const s = deptStats.get(dept)!;
             return (
               <DeptCard

@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Clock, History, Search, X, CheckCircle } from "l
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
 import { DEPARTAMENTOS_LIST, DEPT_COLORS } from "@shared/constants";
+import { useAuthStore } from "@client/stores/authStore";
 import { tiempoExtraSchema, type TiempoExtraInput } from "@shared/validators";
 import { cn, toLocalISO } from "@client/lib/utils";
 
@@ -71,6 +72,13 @@ function formatFecha(iso: string): string {
 }
 
 export default function TiempoExtra() {
+  const { allowedDepts } = useAuthStore();
+  const deptCards = useMemo(() => {
+    const allowed = allowedDepts("tiempo_extra");
+    if (allowed === null) return [...DEPARTAMENTOS_LIST];
+    return [...DEPARTAMENTOS_LIST].filter((d) => allowed.includes(d));
+  }, [allowedDepts]);
+
   const [vista, setVista]             = useState<Vista>("departamentos");
   const [deptActual, setDept]         = useState<string | null>(null);
   const [busqueda, setBusqueda]       = useState("");
@@ -240,7 +248,7 @@ export default function TiempoExtra() {
       {/* ── Vista: Departamentos ── */}
       {vista === "departamentos" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {DEPARTAMENTOS_LIST.map((dept) => (
+          {deptCards.map((dept) => (
             <DeptCard
               key={dept}
               nombre={dept}

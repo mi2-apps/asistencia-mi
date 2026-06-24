@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { cn, formatFecha, toLocalISO } from "@client/lib/utils";
 import { Avatar } from "@client/components/ui/Avatar";
 import { TIPOS_INASISTENCIA, DEPARTAMENTOS_LIST } from "@shared/constants";
+import { useAuthStore } from "@client/stores/authStore";
 
 interface RegistroSemana {
   colaborador_id: number;
@@ -49,6 +50,13 @@ function toISO(d: Date) {
 }
 
 export default function Historial() {
+  const { allowedDepts } = useAuthStore();
+  const deptList = useMemo(() => {
+    const allowed = allowedDepts("asistencia");
+    if (allowed === null) return [...DEPARTAMENTOS_LIST];
+    return [...DEPARTAMENTOS_LIST].filter((d) => allowed.includes(d));
+  }, [allowedDepts]);
+
   const [offset, setOffset]     = useState(0);
   const [busqueda, setBusqueda] = useState("");
   const [filtroDept, setDept]   = useState("");
@@ -139,7 +147,7 @@ export default function Historial() {
             className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">Todos los departamentos</option>
-            {DEPARTAMENTOS_LIST.map((d) => (
+            {deptList.map((d) => (
               <option key={d} value={d}>{d}</option>
             ))}
           </select>

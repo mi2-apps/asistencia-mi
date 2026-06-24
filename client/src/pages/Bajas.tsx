@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
 import { DEPARTAMENTOS_LIST, DEPT_COLORS } from "@shared/constants";
 import { calcularAntiguedad, formatFecha } from "@client/lib/utils";
+import { useAuthStore } from "@client/stores/authStore";
 
 interface Colaborador {
   id: number;
@@ -29,6 +30,13 @@ async function fetchBajas(): Promise<{ colaboradores: Colaborador[] }> {
 }
 
 export default function Bajas() {
+  const { allowedDepts } = useAuthStore();
+  const deptCards = useMemo(() => {
+    const allowed = allowedDepts("colaboradores");
+    if (allowed === null) return [...DEPARTAMENTOS_LIST];
+    return [...DEPARTAMENTOS_LIST].filter((d) => allowed.includes(d));
+  }, [allowedDepts]);
+
   const [deptActual, setDeptActual] = useState<string | null>(null);
   const qc = useQueryClient();
 
@@ -124,7 +132,7 @@ export default function Bajas() {
       <p className="text-sm text-muted-foreground mb-5">{bajas.length} colaboradores de baja</p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-        {DEPARTAMENTOS_LIST.map((dept) => (
+        {deptCards.map((dept) => (
           <DeptCard
             key={dept}
             nombre={dept}
