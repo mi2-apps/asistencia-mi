@@ -1,0 +1,21 @@
+{
+  "title": "考勤登记",
+  "searchPlaceholder": "搜索...",
+  "clearDay": "清除今日",
+  "clearDayConfirm": "清除今日所有考勤记录？",
+  "employee": "员工",
+  "payroll": "工资单",
+  "position": "职位",
+  "status": "状态",
+  "actions": "操作",
+  "noRecord": "未登记",
+  "present": "出勤",
+  "absence": "缺勤",
+  "allRegistered": "全部已登记",
+  "allRegisteredDesc": "本部门所有员工今日已完成考勤登记",
+  "noEmployees": "暂无员工",
+  "registerAbsence": "登记缺勤",
+  "absenceType": "缺勤类型 *",
+  "notes": "备注（可选）",
+  "register": "确认"
+}

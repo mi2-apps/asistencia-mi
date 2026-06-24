@@ -1,0 +1,21 @@
+{
+  "title": "Take Attendance",
+  "searchPlaceholder": "Search...",
+  "clearDay": "Clear day",
+  "clearDayConfirm": "Clear all attendance for today?",
+  "employee": "Employee",
+  "payroll": "Payroll",
+  "position": "Position",
+  "status": "Status",
+  "actions": "Actions",
+  "noRecord": "No record",
+  "present": "Present",
+  "absence": "Absent",
+  "allRegistered": "All registered",
+  "allRegisteredDesc": "All employees in this department have attendance for today",
+  "noEmployees": "No employees",
+  "registerAbsence": "Register Absence",
+  "absenceType": "Absence type *",
+  "notes": "Notes (optional)",
+  "register": "Register"
+}

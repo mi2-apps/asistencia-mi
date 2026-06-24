@@ -1,0 +1,18 @@
+{
+  "title": "Colaboradores",
+  "searchDept": "Buscar en departamento...",
+  "searchAll": "Buscar todos...",
+  "noResults": "Sin resultados",
+  "payrollLabel": "Nómina: ",
+  "shiftLabel": "Turno: ",
+  "seniorityLabel": "Antigüedad: ",
+  "editTitle": "Editar Colaborador",
+  "terminateTitle": "Dar de Baja",
+  "terminationType": "Tipo de baja *",
+  "terminationDate": "Fecha de baja *",
+  "terminationReason": "Motivo (opcional)",
+  "selectOption": "— Seleccionar —",
+  "terminate": "Dar de Baja",
+  "savingDots": "...",
+  "save": "Guardar"
+}

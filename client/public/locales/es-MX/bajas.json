@@ -1,0 +1,14 @@
+{
+  "title": "Bajas de Colaboradores",
+  "subtitle_one": "{{count}} colaborador de baja",
+  "subtitle_other": "{{count}} colaboradores de baja",
+  "backToDepts": "Volver a departamentos",
+  "terminations": "bajas",
+  "noEmployees": "Sin colaboradores de baja en este departamento",
+  "typeLabel": "Tipo de baja:",
+  "dateLabel": "Fecha baja:",
+  "seniorityLabel": "Antigüedad:",
+  "payrollLabel": "Nómina:",
+  "reactivate": "Reactivar",
+  "loading": "Cargando bajas..."
+}

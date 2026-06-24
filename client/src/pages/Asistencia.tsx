@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Search, Trash2 } from "lucide-react";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
@@ -28,6 +29,7 @@ async function fetchReporte(): Promise<{ reporte: ReporteRow[] }> {
 }
 
 export default function Asistencia() {
+  const { t } = useTranslation();
   const [deptActual, setDeptActual]       = useState<string | null>(null);
   const [busqueda, setBusqueda]           = useState("");
   const [inasistenciaModal, setModal]     = useState<ReporteRow | null>(null);
@@ -125,7 +127,7 @@ export default function Asistencia() {
     setModal(null);
   };
 
-  if (isLoading) return <div className="p-8 text-muted-foreground text-sm">Cargando...</div>;
+  if (isLoading) return <div className="p-8 text-muted-foreground text-sm">{t("loading")}</div>;
 
   return (
     <div className="p-6">
@@ -139,7 +141,7 @@ export default function Asistencia() {
               <ArrowLeft size={15} />
             </button>
           )}
-          <h2 className="text-xl font-semibold">{deptActual ?? "Tomar Asistencia"}</h2>
+          <h2 className="text-xl font-semibold">{deptActual ?? t("asistencia:title")}</h2>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -147,16 +149,16 @@ export default function Asistencia() {
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar..."
+              placeholder={t("asistencia:searchPlaceholder")}
               className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-44"
             />
           </div>
           {user?.role === "admin" && (
             <button
-              onClick={() => { if (confirm("¿Limpiar toda la asistencia de hoy?")) limpiarDiaMutation.mutate(); }}
+              onClick={() => { if (confirm(t("asistencia:clearDayConfirm"))) limpiarDiaMutation.mutate(); }}
               className="flex items-center gap-1.5 text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-md border border-destructive/30 transition-colors"
             >
-              <Trash2 size={13} /> Limpiar día
+              <Trash2 size={13} /> {t("asistencia:clearDay")}
             </button>
           )}
         </div>
@@ -182,11 +184,11 @@ export default function Asistencia() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-left">
-                <th className="px-4 py-3 font-medium text-muted-foreground">Colaborador</th>
-                <th className="px-3 py-3 font-medium text-muted-foreground">Nómina</th>
-                <th className="px-3 py-3 font-medium text-muted-foreground">Puesto</th>
-                <th className="px-3 py-3 font-medium text-muted-foreground">Estado</th>
-                <th className="px-3 py-3 font-medium text-muted-foreground">Acciones</th>
+                <th className="px-4 py-3 font-medium text-muted-foreground">{t("asistencia:employee")}</th>
+                <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:payroll")}</th>
+                <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:position")}</th>
+                <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:status")}</th>
+                <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -196,10 +198,10 @@ export default function Asistencia() {
                     {todosRegistrados ? (
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-2xl">✓</span>
-                        <span className="font-medium text-green-600">Todos registrados</span>
-                        <span className="text-xs">Todos los colaboradores de este departamento ya tienen asistencia hoy</span>
+                        <span className="font-medium text-green-600">{t("asistencia:allRegistered")}</span>
+                        <span className="text-xs">{t("asistencia:allRegisteredDesc")}</span>
                       </div>
-                    ) : "Sin colaboradores"}
+                    ) : t("asistencia:noEmployees")}
                   </td>
                 </tr>
               ) : filas.map((r) => (
@@ -214,12 +216,12 @@ export default function Asistencia() {
                   <td className="px-3 py-2 text-muted-foreground">{r.puesto ?? "—"}</td>
                   <td className="px-3 py-2">
                     {!r.estado ? (
-                      <span className="text-muted-foreground">Sin registro</span>
+                      <span className="text-muted-foreground">{t("asistencia:noRecord")}</span>
                     ) : r.estado === "Presente" ? (
-                      <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Presente</span>
+                      <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">
-                        {r.tipo_inasistencia ?? "Inasistencia"}
+                        {r.tipo_inasistencia ?? t("asistencia:absence")}
                       </span>
                     )}
                   </td>
@@ -234,7 +236,7 @@ export default function Asistencia() {
                             : "border-green-500 text-green-600 hover:bg-green-50"
                         )}
                       >
-                        Presente
+                        {t("asistencia:present")}
                       </button>
                       <button
                         onClick={() => abrirModal(r)}
@@ -245,7 +247,7 @@ export default function Asistencia() {
                             : "border-red-400 text-red-500 hover:bg-red-50"
                         )}
                       >
-                        Inasistencia
+                        {t("asistencia:absence")}
                       </button>
                     </div>
                   </td>
@@ -261,12 +263,12 @@ export default function Asistencia() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-xl shadow-xl w-full max-w-sm">
             <div className="p-5 border-b border-border">
-              <h3 className="font-semibold">Registrar Inasistencia</h3>
+              <h3 className="font-semibold">{t("asistencia:registerAbsence")}</h3>
               <p className="text-sm text-muted-foreground mt-0.5">{inasistenciaModal.fullname}</p>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-sm font-medium block mb-1.5">Tipo de inasistencia *</label>
+                <label className="text-sm font-medium block mb-1.5">{t("asistencia:absenceType")}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {TIPOS_INASISTENCIA.map((t) => (
                     <button
@@ -286,7 +288,7 @@ export default function Asistencia() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium block mb-1.5">Notas (opcional)</label>
+                <label className="text-sm font-medium block mb-1.5">{t("asistencia:notes")}</label>
                 <textarea
                   value={notas}
                   onChange={(e) => setNotas(e.target.value)}
@@ -297,14 +299,14 @@ export default function Asistencia() {
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">
               <button onClick={() => setModal(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">
-                Cancelar
+                {t("cancel")}
               </button>
               <button
                 onClick={confirmarInasistencia}
                 disabled={!tipoSel || registrarMutation.isPending}
                 className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors"
               >
-                Registrar
+                {t("asistencia:register")}
               </button>
             </div>
           </div>

@@ -1,0 +1,18 @@
+{
+  "title": "Employees",
+  "searchDept": "Search in department...",
+  "searchAll": "Search all...",
+  "noResults": "No results",
+  "payrollLabel": "Payroll: ",
+  "shiftLabel": "Shift: ",
+  "seniorityLabel": "Seniority: ",
+  "editTitle": "Edit Employee",
+  "terminateTitle": "Terminate",
+  "terminationType": "Termination type *",
+  "terminationDate": "Termination date *",
+  "terminationReason": "Reason (optional)",
+  "selectOption": "— Select —",
+  "terminate": "Terminate",
+  "savingDots": "...",
+  "save": "Save"
+}

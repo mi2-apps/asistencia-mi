@@ -1,0 +1,13 @@
+{
+  "asistencia": "Attendance",
+  "historial": "History",
+  "usuarios": "Users",
+  "colaboradores": "Employees",
+  "addEmployee": "Add Employee",
+  "bajas": "Terminations",
+  "overtime": "Overtime",
+  "whatsNew": "What's New",
+  "manual": "Manual",
+  "devManual": "Dev Manual",
+  "logout": "Log out"
+}

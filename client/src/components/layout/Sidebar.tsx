@@ -14,23 +14,26 @@ import {
 } from "lucide-react";
 import { cn } from "@client/lib/utils";
 import { useAuthStore } from "@client/stores/authStore";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@client/components/ui/LanguageSwitcher";
 
 const NAV_ITEMS = [
-  { href: "/asistencia",          label: "Asistencia",          icon: ClipboardCheck, modulo: "asistencia"    },
-  { href: "/historial",           label: "Historial",           icon: History,        modulo: "asistencia"    },
-  { href: "/usuarios",            label: "Usuarios",            icon: Users,          modulo: "admin"         },
-  { href: "/colaboradores",       label: "Colaboradores",       icon: UserSquare2,    modulo: "colaboradores" },
-  { href: "/agregar-colaborador", label: "Agregar Colaborador", icon: UserPlus,       modulo: "colaboradores" },
-  { href: "/bajas",               label: "Bajas",               icon: UserMinus,      modulo: "colaboradores" },
-  { href: "/tiempo-extra",        label: "Tiempo Extra",        icon: Timer,          modulo: "tiempo_extra"  },
-  { href: "/changelog",           label: "Novedades",           icon: Sparkles,       modulo: null            },
-  { href: "/manual",              label: "Manual",              icon: BookOpen,       modulo: null            },
-  { href: "/developer-manual",    label: "Dev Manual",          icon: FileCode,       modulo: "admin"         },
+  { href: "/asistencia",          tKey: "nav:asistencia",    icon: ClipboardCheck, modulo: "asistencia"    },
+  { href: "/historial",           tKey: "nav:historial",     icon: History,        modulo: "asistencia"    },
+  { href: "/usuarios",            tKey: "nav:usuarios",      icon: Users,          modulo: "admin"         },
+  { href: "/colaboradores",       tKey: "nav:colaboradores", icon: UserSquare2,    modulo: "colaboradores" },
+  { href: "/agregar-colaborador", tKey: "nav:addEmployee",   icon: UserPlus,       modulo: "colaboradores" },
+  { href: "/bajas",               tKey: "nav:bajas",         icon: UserMinus,      modulo: "colaboradores" },
+  { href: "/tiempo-extra",        tKey: "nav:overtime",      icon: Timer,          modulo: "tiempo_extra"  },
+  { href: "/changelog",           tKey: "nav:whatsNew",      icon: Sparkles,       modulo: null            },
+  { href: "/manual",              tKey: "nav:manual",        icon: BookOpen,       modulo: null            },
+  { href: "/developer-manual",    tKey: "nav:devManual",     icon: FileCode,       modulo: "admin"         },
 ] as const;
 
 export function Sidebar() {
   const { user, isAuthenticated, canAccess } = useAuthStore();
   const [location] = useLocation();
+  const { t } = useTranslation();
 
   if (!isAuthenticated) return null;
 
@@ -64,7 +67,7 @@ export function Sidebar() {
               )}
             >
               <item.icon size={17} />
-              {item.label}
+              {t(item.tKey)}
             </Link>
           );
         })}
@@ -74,12 +77,13 @@ export function Sidebar() {
       <div className="px-4 py-4 border-t border-white/10">
         <p className="text-xs text-white/50 truncate">{user?.username}</p>
         <p className="text-xs text-white/30 capitalize">{user?.role}</p>
+        <LanguageSwitcher />
         <a
           href="/auth/logout"
           className="mt-3 flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition-colors"
         >
           <LogOut size={14} />
-          Cerrar sesión
+          {t("nav:logout")}
         </a>
       </div>
     </aside>

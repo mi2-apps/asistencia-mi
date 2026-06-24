@@ -1,0 +1,14 @@
+{
+  "title": "离职员工",
+  "subtitle_one": "{{count}} 名离职员工",
+  "subtitle_other": "{{count}} 名离职员工",
+  "backToDepts": "返回部门列表",
+  "terminations": "离职",
+  "noEmployees": "该部门暂无离职员工",
+  "typeLabel": "离职类型：",
+  "dateLabel": "离职日期：",
+  "seniorityLabel": "工龄：",
+  "payrollLabel": "工资单号：",
+  "reactivate": "重新激活",
+  "loading": "加载中..."
+}

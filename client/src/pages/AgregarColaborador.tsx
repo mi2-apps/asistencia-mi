@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Combobox } from "@client/components/ui/Combobox";
 import { DEPARTAMENTOS_LIST, PUESTOS_LIST, TURNOS } from "@shared/constants";
 import { colaboradorSchema } from "@shared/validators";
@@ -12,6 +13,7 @@ export default function AgregarColaborador() {
   const [, navigate] = useLocation();
   const [foto, setFoto]     = useState<File | null>(null);
   const qc = useQueryClient();
+  const { t } = useTranslation();
 
   const form = useForm<ColaboradorInput>({
     resolver: zodResolver(colaboradorSchema),
@@ -49,53 +51,53 @@ export default function AgregarColaborador() {
 
   return (
     <div className="p-6 max-w-xl">
-      <h2 className="text-xl font-semibold mb-5">Agregar Colaborador</h2>
+      <h2 className="text-xl font-semibold mb-5">{t("agregar:title")}</h2>
 
       <form onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Nombre *" error={form.formState.errors.nombre?.message}>
+          <Field label={t("nombre")} error={form.formState.errors.nombre?.message}>
             <input {...form.register("nombre")} className={inputCls} />
           </Field>
-          <Field label="Apellido *" error={form.formState.errors.apellido?.message}>
+          <Field label={t("apellido")} error={form.formState.errors.apellido?.message}>
             <input {...form.register("apellido")} className={inputCls} />
           </Field>
         </div>
 
-        <Field label="Departamento *" error={form.formState.errors.departamento?.message}>
+        <Field label={t("departamento")} error={form.formState.errors.departamento?.message}>
           <Combobox
             options={[...DEPARTAMENTOS_LIST]}
             value={form.watch("departamento") ?? ""}
             onChange={(v) => form.setValue("departamento", v, { shouldValidate: true })}
-            placeholder="Seleccionar departamento..."
+            placeholder={t("selectDept")}
           />
         </Field>
 
-        <Field label="Puesto" error={form.formState.errors.puesto?.message}>
+        <Field label={t("puesto")} error={form.formState.errors.puesto?.message}>
           <Combobox
             options={[...PUESTOS_LIST]}
             value={form.watch("puesto") ?? ""}
             onChange={(v) => form.setValue("puesto", v)}
-            placeholder="Seleccionar puesto..."
+            placeholder={t("selectPuesto")}
           />
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Turno" error={form.formState.errors.turno?.message}>
+          <Field label={t("turno")} error={form.formState.errors.turno?.message}>
             <select {...form.register("turno")} className={inputCls}>
-              <option value="">— Turno —</option>
+              <option value="">{t("selectTurno")}</option>
               {TURNOS.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </Field>
-          <Field label="N° Empleado" error={form.formState.errors.numero_empleado?.message}>
+          <Field label={t("noEmpleado")} error={form.formState.errors.numero_empleado?.message}>
             <input {...form.register("numero_empleado")} className={inputCls} />
           </Field>
         </div>
 
-        <Field label="Fecha de ingreso" error={form.formState.errors.fecha_ingreso?.message}>
+        <Field label={t("fechaIngreso")} error={form.formState.errors.fecha_ingreso?.message}>
           <input type="date" {...form.register("fecha_ingreso")} className={inputCls} />
         </Field>
 
-        <Field label="Foto de perfil">
+        <Field label={t("agregar:profilePhoto")}>
           <input
             type="file"
             accept="image/*"
@@ -114,14 +116,14 @@ export default function AgregarColaborador() {
             onClick={() => navigate("/colaboradores")}
             className="px-5 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors"
           >
-            Cancelar
+            {t("cancel")}
           </button>
           <button
             type="submit"
             disabled={mutation.isPending}
             className="px-5 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
-            {mutation.isPending ? "Guardando..." : "Guardar Colaborador"}
+            {mutation.isPending ? t("agregar:saving") : t("agregar:save")}
           </button>
         </div>
       </form>

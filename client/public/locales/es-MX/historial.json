@@ -1,0 +1,22 @@
+{
+  "title": "Historial de Asistencia",
+  "searchPlaceholder": "Buscar colaborador...",
+  "employee": "Colaborador",
+  "loading": "Cargando...",
+  "noRecords": "Sin registros",
+  "noOvertimeRecords": "Sin tiempo extra registrado en este periodo",
+  "tabAttendance": "Asistencia Semanal",
+  "tabOvertime": "Tiempo Extra",
+  "kpiEmployees": "Colaboradores",
+  "kpiActive": "Activos",
+  "kpiTerminated": "Bajas",
+  "kpiAvgAttendance": "Asistencia Promedio",
+  "kpiPresentOf": "{{present}} presentes de {{total}} registros",
+  "kpiAbsences": "Inasistencias del Periodo",
+  "kpiAbsencesDesc": "en el periodo seleccionado",
+  "kpiBreakdown": "Desglose de Asistencia",
+  "kpiPresent": "Presentes",
+  "kpiAbsent": "Ausentes",
+  "kpiNoRecord": "Sin Reg.",
+  "kpiMostAbsences": "Depto. con más faltas"
+}

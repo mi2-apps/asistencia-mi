@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Search, Edit2, UserMinus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
 import { Combobox } from "@client/components/ui/Combobox";
@@ -40,6 +41,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 export default function Colaboradores() {
+  const { t } = useTranslation();
   const { allowedDepts } = useAuthStore();
   const deptCards = useMemo(() => {
     const allowed = allowedDepts("colaboradores");
@@ -131,7 +133,7 @@ export default function Colaboradores() {
     bajaMutation.mutate({ id: bajaTarget.id, tipo_baja: tipoBaja, fecha_baja: fechaBaja, motivo_baja: motivoBaja || undefined });
   };
 
-  if (isLoading) return <div className="p-8 text-muted-foreground text-sm">Cargando...</div>;
+  if (isLoading) return <div className="p-8 text-muted-foreground text-sm">{t("loading")}</div>;
 
   return (
     <div className="p-6">
@@ -143,7 +145,7 @@ export default function Colaboradores() {
               <ArrowLeft size={15} />
             </button>
           )}
-          <h2 className="text-xl font-semibold">{deptActual ?? "Colaboradores"}</h2>
+          <h2 className="text-xl font-semibold">{deptActual ?? t("colaboradores:title")}</h2>
           {deptActual && <span className="text-sm text-muted-foreground">({filas.length})</span>}
         </div>
         <div className="relative">
@@ -151,7 +153,7 @@ export default function Colaboradores() {
           <input
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder={deptActual ? "Buscar en departamento..." : "Buscar todos..."}
+            placeholder={deptActual ? t("colaboradores:searchDept") : t("colaboradores:searchAll")}
             className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-48"
           />
         </div>
@@ -172,7 +174,7 @@ export default function Colaboradores() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filas.length === 0 ? (
-            <p className="text-muted-foreground text-sm col-span-full">Sin resultados</p>
+            <p className="text-muted-foreground text-sm col-span-full">{t("colaboradores:noResults")}</p>
           ) : filas.map((c) => (
             <div key={c.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-start justify-between gap-2">
@@ -193,9 +195,9 @@ export default function Colaboradores() {
                 </div>
               </div>
               <div className="text-xs space-y-0.5 text-muted-foreground">
-                {c.numero_empleado && <p><span className="font-medium text-foreground">Nómina: </span>{c.numero_empleado}</p>}
-                {c.turno && <p><span className="font-medium text-foreground">Turno: </span>{c.turno}</p>}
-                <p><span className="font-medium text-foreground">Antigüedad: </span>{calcularAntiguedad(c.fecha_ingreso)}</p>
+                {c.numero_empleado && <p><span className="font-medium text-foreground">{t("colaboradores:payrollLabel")}</span>{c.numero_empleado}</p>}
+                {c.turno && <p><span className="font-medium text-foreground">{t("colaboradores:shiftLabel")}</span>{c.turno}</p>}
+                <p><span className="font-medium text-foreground">{t("colaboradores:seniorityLabel")}</span>{calcularAntiguedad(c.fecha_ingreso)}</p>
               </div>
             </div>
           ))}
@@ -207,42 +209,42 @@ export default function Colaboradores() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-5 border-b border-border flex items-center justify-between">
-              <h3 className="font-semibold">Editar Colaborador</h3>
+              <h3 className="font-semibold">{t("colaboradores:editTitle")}</h3>
               <button onClick={() => setEditando(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
             </div>
             <form onSubmit={editForm.handleSubmit((d) => editMutation.mutate({ id: editando.id, data: d }))} className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Nombre *" error={editForm.formState.errors.nombre?.message}>
+                <Field label={t("nombre")} error={editForm.formState.errors.nombre?.message}>
                   <input {...editForm.register("nombre")} className={inputCls} />
                 </Field>
-                <Field label="Apellido *" error={editForm.formState.errors.apellido?.message}>
+                <Field label={t("apellido")} error={editForm.formState.errors.apellido?.message}>
                   <input {...editForm.register("apellido")} className={inputCls} />
                 </Field>
               </div>
-              <Field label="Departamento *" error={editForm.formState.errors.departamento?.message}>
-                <Combobox options={[...DEPARTAMENTOS_LIST]} value={editForm.watch("departamento") ?? ""} onChange={(v) => editForm.setValue("departamento", v, { shouldValidate: true })} />
+              <Field label={t("departamento")} error={editForm.formState.errors.departamento?.message}>
+                <Combobox options={[...DEPARTAMENTOS_LIST]} value={editForm.watch("departamento") ?? ""} onChange={(v) => editForm.setValue("departamento", v, { shouldValidate: true })} placeholder={t("selectDept")} />
               </Field>
-              <Field label="Puesto">
-                <Combobox options={[...PUESTOS_LIST]} value={editForm.watch("puesto") ?? ""} onChange={(v) => editForm.setValue("puesto", v)} />
+              <Field label={t("puesto")}>
+                <Combobox options={[...PUESTOS_LIST]} value={editForm.watch("puesto") ?? ""} onChange={(v) => editForm.setValue("puesto", v)} placeholder={t("selectPuesto")} />
               </Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Turno">
+                <Field label={t("turno")}>
                   <select {...editForm.register("turno")} className={inputCls}>
-                    <option value="">— Turno —</option>
+                    <option value="">{t("selectTurno")}</option>
                     {TURNOS.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </Field>
-                <Field label="N° Empleado">
+                <Field label={t("noEmpleado")}>
                   <input {...editForm.register("numero_empleado")} className={inputCls} />
                 </Field>
               </div>
-              <Field label="Fecha de ingreso">
+              <Field label={t("fechaIngreso")}>
                 <input type="date" {...editForm.register("fecha_ingreso")} className={inputCls} />
               </Field>
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setEditando(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">Cancelar</button>
+                <button type="button" onClick={() => setEditando(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">{t("cancel")}</button>
                 <button type="submit" disabled={editMutation.isPending} className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">
-                  {editMutation.isPending ? "Guardando..." : "Guardar"}
+                  {editMutation.isPending ? t("saving") : t("save")}
                 </button>
               </div>
             </form>
@@ -255,28 +257,28 @@ export default function Colaboradores() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-xl shadow-xl w-full max-w-sm">
             <div className="p-5 border-b border-border flex items-center justify-between">
-              <h3 className="font-semibold">Dar de Baja</h3>
+              <h3 className="font-semibold">{t("colaboradores:terminateTitle")}</h3>
               <button onClick={() => setBajaTarget(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm"><span className="font-medium">{bajaTarget.fullname}</span> — {bajaTarget.departamento}</p>
-              <Field label="Tipo de baja *">
+              <Field label={t("colaboradores:terminationType")}>
                 <select value={tipoBaja} onChange={(e) => setTipoBaja(e.target.value)} className={inputCls}>
-                  <option value="">— Seleccionar —</option>
+                  <option value="">{t("colaboradores:selectOption")}</option>
                   {TIPOS_BAJA.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Field>
-              <Field label="Fecha de baja *">
+              <Field label={t("colaboradores:terminationDate")}>
                 <input type="date" value={fechaBaja} onChange={(e) => setFechaBaja(e.target.value)} className={inputCls} />
               </Field>
-              <Field label="Motivo (opcional)">
+              <Field label={t("colaboradores:terminationReason")}>
                 <textarea value={motivoBaja} onChange={(e) => setMotivoBaja(e.target.value)} rows={2} className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none" />
               </Field>
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">
-              <button onClick={() => setBajaTarget(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">Cancelar</button>
+              <button onClick={() => setBajaTarget(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">{t("cancel")}</button>
               <button onClick={confirmarBaja} disabled={!tipoBaja || bajaMutation.isPending} className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors">
-                {bajaMutation.isPending ? "..." : "Dar de Baja"}
+                {bajaMutation.isPending ? t("colaboradores:savingDots") : t("colaboradores:terminate")}
               </button>
             </div>
           </div>

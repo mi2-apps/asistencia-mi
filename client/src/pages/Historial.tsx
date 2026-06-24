@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { cn, formatFecha, toLocalISO } from "@client/lib/utils";
 import { Avatar } from "@client/components/ui/Avatar";
 import { TIPOS_INASISTENCIA, DEPARTAMENTOS_LIST } from "@shared/constants";
+import { useTranslation } from "react-i18next";
 
 interface RegistroSemana {
   colaborador_id: number;
@@ -72,6 +73,8 @@ export default function Historial() {
   const [filtroDept, setDept]       = useState("");
   const [filtroTurno, setTurno]     = useState("");
   const [tabActiva, setTabActiva]   = useState<"asistencia" | "tiempo-extra">("asistencia");
+
+  const { t } = useTranslation();
 
   const lunes   = getMondayOfWeek(offset);
   const sabado  = new Date(lunes); sabado.setDate(lunes.getDate() + 5);
@@ -187,7 +190,7 @@ export default function Historial() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold">Historial de Asistencia</h2>
+          <h2 className="text-xl font-semibold">{t("historial:title")}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {lunes.toLocaleDateString("es-MX", { month: "long", year: "numeric" })}
           </p>
@@ -198,7 +201,7 @@ export default function Historial() {
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar colaborador..."
+              placeholder={t("historial:searchPlaceholder")}
               className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-44"
             />
           </div>
@@ -207,7 +210,7 @@ export default function Historial() {
             onChange={(e) => setDept(e.target.value)}
             className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">Todos los departamentos</option>
+            <option value="">{t("allDepts")}</option>
             {deptList.map((d) => (
               <option key={d} value={d}>{d}</option>
             ))}
@@ -217,7 +220,7 @@ export default function Historial() {
             onChange={(e) => setTurno(e.target.value)}
             className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">Todos los turnos</option>
+            <option value="">{t("allShifts")}</option>
             {turnos.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
@@ -250,54 +253,54 @@ export default function Historial() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
         {/* Colaboradores */}
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Colaboradores</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiEmployees")}</p>
           <div className="flex gap-4">
             <div className="text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Activos</p>
+              <p className="text-[10px] text-muted-foreground uppercase">{t("historial:kpiActive")}</p>
               <p className="text-2xl font-bold text-blue-600">{kpis.activos}</p>
             </div>
             <div className="w-px bg-border" />
             <div className="text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Bajas</p>
+              <p className="text-[10px] text-muted-foreground uppercase">{t("historial:kpiTerminated")}</p>
               <p className="text-2xl font-bold text-slate-500">{kpis.bajas}</p>
             </div>
           </div>
         </div>
         {/* Asistencia promedio */}
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Asistencia Promedio</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiAvgAttendance")}</p>
           <p className="text-2xl font-bold text-green-600">{kpis.promedio}%</p>
-          <p className="text-xs text-muted-foreground mt-1">{kpis.presentes} presentes de {kpis.totalRegistros} registros</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("historial:kpiPresentOf", { present: kpis.presentes, total: kpis.totalRegistros })}</p>
         </div>
         {/* Inasistencias */}
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Inasistencias del Periodo</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiAbsences")}</p>
           <p className="text-2xl font-bold text-red-600">{kpis.inasistencias}</p>
-          <p className="text-xs text-muted-foreground mt-1">en el periodo seleccionado</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("historial:kpiAbsencesDesc")}</p>
         </div>
         {/* Desglose */}
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Desglose de Asistencia</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiBreakdown")}</p>
           <div className="flex gap-3">
             <div className="text-center">
-              <p className="text-[10px] text-green-600 uppercase font-medium">Presentes</p>
+              <p className="text-[10px] text-green-600 uppercase font-medium">{t("historial:kpiPresent")}</p>
               <p className="text-lg font-bold text-green-600">{kpis.presentes}</p>
             </div>
             <div className="w-px bg-border" />
             <div className="text-center">
-              <p className="text-[10px] text-red-500 uppercase font-medium">Ausentes</p>
+              <p className="text-[10px] text-red-500 uppercase font-medium">{t("historial:kpiAbsent")}</p>
               <p className="text-lg font-bold text-red-500">{kpis.inasistencias}</p>
             </div>
             <div className="w-px bg-border" />
             <div className="text-center">
-              <p className="text-[10px] text-amber-500 uppercase font-medium">Sin Reg.</p>
+              <p className="text-[10px] text-amber-500 uppercase font-medium">{t("historial:kpiNoRecord")}</p>
               <p className="text-lg font-bold text-amber-500">{kpis.sinRegistrar}</p>
             </div>
           </div>
         </div>
         {/* Depto con más faltas */}
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Depto. con más faltas</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiMostAbsences")}</p>
           <p className="text-lg font-bold text-foreground truncate">{kpis.deptMasFaltas}</p>
         </div>
       </div>
@@ -313,7 +316,7 @@ export default function Historial() {
               : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
-          Asistencia Semanal
+          {t("historial:tabAttendance")}
         </button>
         <button
           onClick={() => setTabActiva("tiempo-extra")}
@@ -324,7 +327,7 @@ export default function Historial() {
               : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
-          Tiempo Extra
+          {t("historial:tabOvertime")}
           {byColaboradorTE.length > 0 && (
             <span className="ml-1.5 inline-block bg-amber-100 text-amber-700 text-[10px] font-semibold rounded-full px-1.5 py-0.5">
               {byColaboradorTE.length}
@@ -339,7 +342,7 @@ export default function Historial() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">Colaborador</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">{t("historial:employee")}</th>
                 {dias.map((d) => (
                   <th key={d.toISOString()} className="text-center px-2 py-3 font-medium text-muted-foreground min-w-[90px]">
                     <span className="block text-xs uppercase">
@@ -354,9 +357,9 @@ export default function Historial() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Cargando...</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">{t("historial:loading")}</td></tr>
               ) : byColaborador.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Sin registros</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">{t("historial:noRecords")}</td></tr>
               ) : colaboradoresFiltrados.map(({ info, dias: dm }) => (
                 <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
                   <td className="px-4 py-2">
@@ -398,7 +401,7 @@ export default function Historial() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">Colaborador</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">{t("historial:employee")}</th>
                 {diasTE.map((d) => (
                   <th key={d.toISOString()} className="text-center px-2 py-3 font-medium text-muted-foreground min-w-[110px]">
                     <span className="block text-xs uppercase">
@@ -413,9 +416,9 @@ export default function Historial() {
             </thead>
             <tbody>
               {teLoading ? (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Cargando...</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">{t("historial:loading")}</td></tr>
               ) : colaboradoresFiltradosTE.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Sin tiempo extra registrado en este periodo</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">{t("historial:noOvertimeRecords")}</td></tr>
               ) : colaboradoresFiltradosTE.map(({ info, dias: dm }) => (
                 <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
                   <td className="px-4 py-2">

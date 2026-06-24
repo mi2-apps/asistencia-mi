@@ -1,0 +1,18 @@
+{
+  "title": "员工管理",
+  "searchDept": "在部门中搜索...",
+  "searchAll": "搜索全部...",
+  "noResults": "无结果",
+  "payrollLabel": "工资单号：",
+  "shiftLabel": "班次：",
+  "seniorityLabel": "工龄：",
+  "editTitle": "编辑员工",
+  "terminateTitle": "办理离职",
+  "terminationType": "离职类型 *",
+  "terminationDate": "离职日期 *",
+  "terminationReason": "原因（可选）",
+  "selectOption": "— 请选择 —",
+  "terminate": "确认离职",
+  "savingDots": "...",
+  "save": "保存"
+}

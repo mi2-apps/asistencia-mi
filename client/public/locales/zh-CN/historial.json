@@ -1,0 +1,22 @@
+{
+  "title": "考勤历史",
+  "searchPlaceholder": "搜索员工...",
+  "employee": "员工",
+  "loading": "加载中...",
+  "noRecords": "暂无记录",
+  "noOvertimeRecords": "本期无加班记录",
+  "tabAttendance": "周考勤",
+  "tabOvertime": "加班",
+  "kpiEmployees": "员工",
+  "kpiActive": "在职",
+  "kpiTerminated": "离职",
+  "kpiAvgAttendance": "平均出勤率",
+  "kpiPresentOf": "{{total}} 条记录中 {{present}} 人出勤",
+  "kpiAbsences": "缺勤次数",
+  "kpiAbsencesDesc": "所选周期内",
+  "kpiBreakdown": "出勤分布",
+  "kpiPresent": "出勤",
+  "kpiAbsent": "缺勤",
+  "kpiNoRecord": "未登记",
+  "kpiMostAbsences": "缺勤最多部门"
+}

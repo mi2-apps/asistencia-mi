@@ -1,0 +1,22 @@
+{
+  "title": "Attendance History",
+  "searchPlaceholder": "Search employee...",
+  "employee": "Employee",
+  "loading": "Loading...",
+  "noRecords": "No records",
+  "noOvertimeRecords": "No overtime recorded in this period",
+  "tabAttendance": "Weekly Attendance",
+  "tabOvertime": "Overtime",
+  "kpiEmployees": "Employees",
+  "kpiActive": "Active",
+  "kpiTerminated": "Terminated",
+  "kpiAvgAttendance": "Average Attendance",
+  "kpiPresentOf": "{{present}} present out of {{total}} records",
+  "kpiAbsences": "Period Absences",
+  "kpiAbsencesDesc": "in the selected period",
+  "kpiBreakdown": "Attendance Breakdown",
+  "kpiPresent": "Present",
+  "kpiAbsent": "Absent",
+  "kpiNoRecord": "No Rec.",
+  "kpiMostAbsences": "Dept. with most absences"
+}

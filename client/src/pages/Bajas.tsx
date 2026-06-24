@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
 import { DEPARTAMENTOS_LIST, DEPT_COLORS } from "@shared/constants";
@@ -30,6 +31,7 @@ async function fetchBajas(): Promise<{ colaboradores: Colaborador[] }> {
 }
 
 export default function Bajas() {
+  const { t } = useTranslation();
   const { allowedDepts } = useAuthStore();
   const deptCards = useMemo(() => {
     const allowed = allowedDepts("colaboradores");
@@ -67,7 +69,7 @@ export default function Bajas() {
     : [];
 
   if (isLoading) {
-    return <div className="p-8 text-muted-foreground text-sm">Cargando bajas...</div>;
+    return <div className="p-8 text-muted-foreground text-sm">{t("bajas:loading")}</div>;
   }
 
   if (deptActual) {
@@ -77,17 +79,17 @@ export default function Bajas() {
           onClick={() => setDeptActual(null)}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5 transition-colors"
         >
-          <ArrowLeft size={15} /> Volver a departamentos
+          <ArrowLeft size={15} /> {t("bajas:backToDepts")}
         </button>
 
         <div className="flex items-center gap-3 mb-5">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: DEPT_COLORS[deptActual] ?? "#888" }} />
           <h2 className="text-lg font-semibold">{deptActual}</h2>
-          <span className="text-sm text-muted-foreground">({listaActual.length} bajas)</span>
+          <span className="text-sm text-muted-foreground">{"(" + listaActual.length + " " + t("bajas:terminations") + ")"}</span>
         </div>
 
         {listaActual.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Sin colaboradores de baja en este departamento</p>
+          <p className="text-muted-foreground text-sm">{t("bajas:noEmployees")}</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {listaActual.map((c) => (
@@ -101,10 +103,10 @@ export default function Bajas() {
                 </div>
 
                 <div className="text-xs space-y-1 text-muted-foreground">
-                  <div className="flex gap-2"><span className="font-medium text-foreground">Tipo de baja:</span>{c.tipo_baja ?? "—"}</div>
-                  <div className="flex gap-2"><span className="font-medium text-foreground">Fecha baja:</span>{formatFecha(c.fecha_baja)}</div>
-                  <div className="flex gap-2"><span className="font-medium text-foreground">Antigüedad:</span>{calcularAntiguedad(c.fecha_ingreso)}</div>
-                  {c.numero_empleado && <div className="flex gap-2"><span className="font-medium text-foreground">Nómina:</span>{c.numero_empleado}</div>}
+                  <div className="flex gap-2"><span className="font-medium text-foreground">{t("bajas:typeLabel")}</span>{c.tipo_baja ?? "—"}</div>
+                  <div className="flex gap-2"><span className="font-medium text-foreground">{t("bajas:dateLabel")}</span>{formatFecha(c.fecha_baja)}</div>
+                  <div className="flex gap-2"><span className="font-medium text-foreground">{t("bajas:seniorityLabel")}</span>{calcularAntiguedad(c.fecha_ingreso)}</div>
+                  {c.numero_empleado && <div className="flex gap-2"><span className="font-medium text-foreground">{t("bajas:payrollLabel")}</span>{c.numero_empleado}</div>}
                 </div>
 
                 {c.motivo_baja && (
@@ -116,7 +118,7 @@ export default function Bajas() {
                   disabled={reactivarMutation.isPending}
                   className="flex items-center gap-1.5 text-xs text-brand-green hover:underline disabled:opacity-50"
                 >
-                  <RotateCcw size={12} /> Reactivar
+                  <RotateCcw size={12} /> {t("bajas:reactivate")}
                 </button>
               </div>
             ))}
@@ -128,8 +130,8 @@ export default function Bajas() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-semibold mb-1">Bajas de Colaboradores</h2>
-      <p className="text-sm text-muted-foreground mb-5">{bajas.length} colaboradores de baja</p>
+      <h2 className="text-xl font-semibold mb-1">{t("bajas:title")}</h2>
+      <p className="text-sm text-muted-foreground mb-5">{t("bajas:subtitle_other", { count: bajas.length })}</p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {deptCards.map((dept) => (

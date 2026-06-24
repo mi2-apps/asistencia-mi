@@ -1,0 +1,14 @@
+{
+  "title": "Terminated Employees",
+  "subtitle_one": "{{count}} terminated employee",
+  "subtitle_other": "{{count}} terminated employees",
+  "backToDepts": "Back to departments",
+  "terminations": "terminated",
+  "noEmployees": "No terminated employees in this department",
+  "typeLabel": "Type:",
+  "dateLabel": "Date:",
+  "seniorityLabel": "Seniority:",
+  "payrollLabel": "Payroll:",
+  "reactivate": "Reactivate",
+  "loading": "Loading..."
+}

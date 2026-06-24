@@ -1,0 +1,21 @@
+{
+  "title": "Tomar Asistencia",
+  "searchPlaceholder": "Buscar...",
+  "clearDay": "Limpiar día",
+  "clearDayConfirm": "¿Limpiar toda la asistencia de hoy?",
+  "employee": "Colaborador",
+  "payroll": "Nómina",
+  "position": "Puesto",
+  "status": "Estado",
+  "actions": "Acciones",
+  "noRecord": "Sin registro",
+  "present": "Presente",
+  "absence": "Inasistencia",
+  "allRegistered": "Todos registrados",
+  "allRegisteredDesc": "Todos los colaboradores de este departamento ya tienen asistencia hoy",
+  "noEmployees": "Sin colaboradores",
+  "registerAbsence": "Registrar Inasistencia",
+  "absenceType": "Tipo de inasistencia *",
+  "notes": "Notas (opcional)",
+  "register": "Registrar"
+}
