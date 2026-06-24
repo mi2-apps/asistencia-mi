@@ -18,7 +18,7 @@ router.get("/stats", requireAuth, requireModulo("tiempo_extra"), async (req, res
       return res.json({ success: true, stats: {} });
     }
 
-    const deptsFilter = depts === null ? sql`` : sql`AND c.departamento = ANY(${depts})`;
+    const deptsFilter = depts === null ? sql`` : sql`AND c.departamento IN (${sql.join(depts.map((d) => sql`${d}`), sql`, `)})`;
 
     const rows = await db.execute(sql`
       SELECT
@@ -56,7 +56,7 @@ router.get("/semanas", requireAuth, requireModulo("tiempo_extra"), async (req, r
     const deptsFilter = effectiveDept
       ? sql`WHERE c.departamento = ${effectiveDept}`
       : depts !== null
-        ? sql`WHERE c.departamento = ANY(${depts})`
+        ? sql`WHERE c.departamento IN (${sql.join(depts.map((d) => sql`${d}`), sql`, `)})`
         : sql``;
 
     const rows = await db.execute(sql`
@@ -97,7 +97,7 @@ router.get("/", requireAuth, requireModulo("tiempo_extra"), async (req, res, nex
     const deptsFilter = effectiveDept
       ? sql`AND c.departamento = ${effectiveDept}`
       : depts !== null
-        ? sql`AND c.departamento = ANY(${depts})`
+        ? sql`AND c.departamento IN (${sql.join(depts.map((d) => sql`${d}`), sql`, `)})`
         : sql``;
 
     const rows = await db.execute(sql`

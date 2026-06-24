@@ -253,7 +253,7 @@ export default function TiempoExtra() {
               key={dept}
               nombre={dept}
               color={DEPT_COLORS[dept] ?? "#888"}
-              stats={{ total: statsData?.stats[dept] ?? 0 }}
+              stats={{ total: statsData?.stats?.[dept] ?? 0 }}
               onClick={() => { setDept(dept); setVista("opciones"); }}
             />
           ))}
