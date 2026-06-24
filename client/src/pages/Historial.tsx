@@ -21,6 +21,22 @@ interface RegistroSemana {
   notas: string | null;
 }
 
+interface RegistroTE {
+  id: number;
+  colaborador_id: number;
+  nombre: string;
+  apellido: string;
+  fullname: string;
+  numero_empleado: string | null;
+  puesto: string | null;
+  departamento: string | null;
+  foto_perfil: string | null;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  horas_totales: string;
+}
+
 const TIPO_COLORS: Record<string, string> = {
   FI: "bg-red-100 text-red-700",
   FJ: "bg-orange-100 text-orange-700",
@@ -51,10 +67,11 @@ function toISO(d: Date) {
 export default function Historial() {
   const deptList = [...DEPARTAMENTOS_LIST];
 
-  const [offset, setOffset]     = useState(0);
-  const [busqueda, setBusqueda] = useState("");
-  const [filtroDept, setDept]   = useState("");
-  const [filtroTurno, setTurno] = useState("");
+  const [offset, setOffset]         = useState(0);
+  const [busqueda, setBusqueda]     = useState("");
+  const [filtroDept, setDept]       = useState("");
+  const [filtroTurno, setTurno]     = useState("");
+  const [tabActiva, setTabActiva]   = useState<"asistencia" | "tiempo-extra">("asistencia");
 
   const lunes   = getMondayOfWeek(offset);
   const sabado  = new Date(lunes); sabado.setDate(lunes.getDate() + 5);
@@ -68,6 +85,11 @@ export default function Historial() {
   const { data, isLoading } = useQuery<{ registros: RegistroSemana[], bajas_count: number }>({
     queryKey: ["historial", inicio, fin],
     queryFn: () => fetch(`/api/v1/asistencia/semana?inicio=${inicio}&fin=${fin}`, { credentials: "include" }).then((r) => r.json()),
+  });
+
+  const { data: teData, isLoading: teLoading } = useQuery<{ success: boolean; registros: RegistroTE[] }>({
+    queryKey: ["historial-te", inicio, fin],
+    queryFn: () => fetch(`/api/v1/tiempo-extra?inicio=${inicio}&fin=${fin}`, { credentials: "include" }).then((r) => r.json()),
   });
 
   const byColaborador = useMemo(() => {
@@ -103,6 +125,32 @@ export default function Historial() {
     }
     return lista;
   }, [byColaborador, busqueda, filtroDept, filtroTurno]);
+
+  const byColaboradorTE = useMemo(() => {
+    const map = new Map<number, { info: RegistroTE; dias: Map<string, RegistroTE[]> }>();
+    for (const r of teData?.registros ?? []) {
+      if (!map.has(r.colaborador_id))
+        map.set(r.colaborador_id, { info: r, dias: new Map() });
+      const entry = map.get(r.colaborador_id)!;
+      if (!entry.dias.has(r.fecha)) entry.dias.set(r.fecha, []);
+      entry.dias.get(r.fecha)!.push(r);
+    }
+    return Array.from(map.values());
+  }, [teData]);
+
+  const colaboradoresFiltradosTE = useMemo(() => {
+    let lista = byColaboradorTE;
+    if (filtroDept)  lista = lista.filter(({ info }) => info.departamento === filtroDept);
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase();
+      lista = lista.filter(({ info }) =>
+        info.fullname.toLowerCase().includes(q) ||
+        info.numero_empleado?.toLowerCase().includes(q) ||
+        info.puesto?.toLowerCase().includes(q)
+      );
+    }
+    return lista;
+  }, [byColaboradorTE, busqueda, filtroDept]);
 
   const kpis = useMemo(() => {
     let presentes = 0, inasistencias = 0;
@@ -248,62 +296,161 @@ export default function Historial() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/40">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">Colaborador</th>
-              {dias.map((d) => (
-                <th key={d.toISOString()} className="text-center px-2 py-3 font-medium text-muted-foreground min-w-[90px]">
-                  <span className="block text-xs uppercase">
-                    {d.toLocaleDateString("es-MX", { weekday: "short" })}
-                  </span>
-                  <span className="block text-sm">
-                    {d.toLocaleDateString("es-MX", { day: "numeric", month: "numeric" })}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Cargando...</td></tr>
-            ) : byColaborador.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Sin registros</td></tr>
-            ) : colaboradoresFiltrados.map(({ info, dias: dm }) => (
-              <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
-                <td className="px-4 py-2">
-                  <div className="flex items-center gap-2">
-                    <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" />
-                    <div>
-                      <p className="font-medium leading-tight">{info.fullname}</p>
-                      <p className="text-xs text-muted-foreground">{info.puesto}</p>
-                    </div>
-                  </div>
-                </td>
-                {dias.map((d) => {
-                  const iso = toISO(d);
-                  const reg = dm.get(iso);
-                  return (
-                    <td key={iso} className="text-center px-2 py-2">
-                      {!reg ? (
-                        <span className="text-muted-foreground">—</span>
-                      ) : reg.estado === "Presente" ? (
-                        <span className="inline-block px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">✓</span>
-                      ) : (
-                        <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", TIPO_COLORS[reg.tipo_inasistencia ?? "FI"] ?? "bg-gray-100 text-gray-600")}>
-                          {reg.tipo_inasistencia ?? "?"}
-                        </span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 border-b border-border">
+        <button
+          onClick={() => setTabActiva("asistencia")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+            tabActiva === "asistencia"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Asistencia Semanal
+        </button>
+        <button
+          onClick={() => setTabActiva("tiempo-extra")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+            tabActiva === "tiempo-extra"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Tiempo Extra
+          {byColaboradorTE.length > 0 && (
+            <span className="ml-1.5 inline-block bg-amber-100 text-amber-700 text-[10px] font-semibold rounded-full px-1.5 py-0.5">
+              {byColaboradorTE.length}
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* Table: Asistencia */}
+      {tabActiva === "asistencia" && (
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">Colaborador</th>
+                {dias.map((d) => (
+                  <th key={d.toISOString()} className="text-center px-2 py-3 font-medium text-muted-foreground min-w-[90px]">
+                    <span className="block text-xs uppercase">
+                      {d.toLocaleDateString("es-MX", { weekday: "short" })}
+                    </span>
+                    <span className="block text-sm">
+                      {d.toLocaleDateString("es-MX", { day: "numeric", month: "numeric" })}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Cargando...</td></tr>
+              ) : byColaborador.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Sin registros</td></tr>
+              ) : colaboradoresFiltrados.map(({ info, dias: dm }) => (
+                <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" />
+                      <div>
+                        <p className="font-medium leading-tight">{info.fullname}</p>
+                        <p className="text-xs text-muted-foreground">{info.puesto}</p>
+                      </div>
+                    </div>
+                  </td>
+                  {dias.map((d) => {
+                    const iso = toISO(d);
+                    const reg = dm.get(iso);
+                    return (
+                      <td key={iso} className="text-center px-2 py-2">
+                        {!reg ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : reg.estado === "Presente" ? (
+                          <span className="inline-block px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">✓</span>
+                        ) : (
+                          <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", TIPO_COLORS[reg.tipo_inasistencia ?? "FI"] ?? "bg-gray-100 text-gray-600")}>
+                            {reg.tipo_inasistencia ?? "?"}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Table: Tiempo Extra */}
+      {tabActiva === "tiempo-extra" && (
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">Colaborador</th>
+                {dias.map((d) => (
+                  <th key={d.toISOString()} className="text-center px-2 py-3 font-medium text-muted-foreground min-w-[110px]">
+                    <span className="block text-xs uppercase">
+                      {d.toLocaleDateString("es-MX", { weekday: "short" })}
+                    </span>
+                    <span className="block text-sm">
+                      {d.toLocaleDateString("es-MX", { day: "numeric", month: "numeric" })}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {teLoading ? (
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Cargando...</td></tr>
+              ) : colaboradoresFiltradosTE.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Sin tiempo extra registrado en este periodo</td></tr>
+              ) : colaboradoresFiltradosTE.map(({ info, dias: dm }) => (
+                <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" />
+                      <div>
+                        <p className="font-medium leading-tight">{info.fullname}</p>
+                        <p className="text-xs text-muted-foreground">{info.puesto}</p>
+                      </div>
+                    </div>
+                  </td>
+                  {dias.map((d) => {
+                    const iso = toISO(d);
+                    const regs = dm.get(iso);
+                    if (!regs || regs.length === 0) {
+                      return (
+                        <td key={iso} className="text-center px-2 py-2">
+                          <span className="text-muted-foreground">—</span>
+                        </td>
+                      );
+                    }
+                    const totalHoras = regs.reduce((acc, r) => acc + parseFloat(r.horas_totales ?? "0"), 0);
+                    const horasStr  = Number.isInteger(totalHoras) ? `${totalHoras}h` : `${totalHoras.toFixed(1)}h`;
+                    const horario   = regs.length === 1
+                      ? `${regs[0].hora_inicio.slice(0, 5)}–${regs[0].hora_fin.slice(0, 5)}`
+                      : `${regs.length} registros`;
+                    return (
+                      <td key={iso} className="text-center px-2 py-2">
+                        <span className="inline-flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg bg-amber-50 border border-amber-200">
+                          <span className="text-xs font-semibold text-amber-700">{horasStr}</span>
+                          <span className="text-[10px] text-amber-600 whitespace-nowrap">{horario}</span>
+                        </span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
