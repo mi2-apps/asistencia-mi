@@ -75,10 +75,16 @@ export default function Historial() {
 
   const lunes   = getMondayOfWeek(offset);
   const sabado  = new Date(lunes); sabado.setDate(lunes.getDate() + 5);
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
   const inicio  = toISO(lunes);
   const fin     = toISO(sabado);
+  const finTE   = toISO(domingo);
 
   const dias = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(lunes); d.setDate(lunes.getDate() + i); return d;
+  });
+
+  const diasTE = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(lunes); d.setDate(lunes.getDate() + i); return d;
   });
 
@@ -88,8 +94,8 @@ export default function Historial() {
   });
 
   const { data: teData, isLoading: teLoading } = useQuery<{ success: boolean; registros: RegistroTE[] }>({
-    queryKey: ["historial-te", inicio, fin],
-    queryFn: () => fetch(`/api/v1/tiempo-extra?inicio=${inicio}&fin=${fin}`, { credentials: "include" }).then((r) => r.json()),
+    queryKey: ["historial-te", inicio, finTE],
+    queryFn: () => fetch(`/api/v1/tiempo-extra?inicio=${inicio}&fin=${finTE}`, { credentials: "include" }).then((r) => r.json()),
   });
 
   const byColaborador = useMemo(() => {
@@ -393,7 +399,7 @@ export default function Historial() {
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">Colaborador</th>
-                {dias.map((d) => (
+                {diasTE.map((d) => (
                   <th key={d.toISOString()} className="text-center px-2 py-3 font-medium text-muted-foreground min-w-[110px]">
                     <span className="block text-xs uppercase">
                       {d.toLocaleDateString("es-MX", { weekday: "short" })}
@@ -407,9 +413,9 @@ export default function Historial() {
             </thead>
             <tbody>
               {teLoading ? (
-                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Cargando...</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Cargando...</td></tr>
               ) : colaboradoresFiltradosTE.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Sin tiempo extra registrado en este periodo</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Sin tiempo extra registrado en este periodo</td></tr>
               ) : colaboradoresFiltradosTE.map(({ info, dias: dm }) => (
                 <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
                   <td className="px-4 py-2">
@@ -421,7 +427,7 @@ export default function Historial() {
                       </div>
                     </div>
                   </td>
-                  {dias.map((d) => {
+                  {diasTE.map((d) => {
                     const iso = toISO(d);
                     const regs = dm.get(iso);
                     if (!regs || regs.length === 0) {
