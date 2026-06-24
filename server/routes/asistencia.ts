@@ -20,7 +20,7 @@ router.get("/reporte", requireAuth, requireModulo("asistencia"), async (req, res
 
     const deptsFilter = depts === null
       ? sql``
-      : sql`AND c.departamento = ANY(${depts})`;
+      : sql`AND c.departamento IN (${sql.join(depts.map((d) => sql`${d}`), sql`, `)})`;
 
     const rows = await db.execute(sql`
       SELECT
