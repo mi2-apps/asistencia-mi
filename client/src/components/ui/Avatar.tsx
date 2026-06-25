@@ -19,9 +19,10 @@ export function Avatar({ nombre, apellido, fotoPerfil, size = "md", className }:
   const [imgError, setImgError] = useState(false);
 
   if (fotoPerfil && !imgError) {
+    const src = fotoPerfil.startsWith("http") ? fotoPerfil : `/uploads/${fotoPerfil}`;
     return (
       <img
-        src={`/uploads/${fotoPerfil}`}
+        src={src}
         alt={`${nombre} ${apellido ?? ""}`}
         className={cn("rounded-full object-cover flex-shrink-0", sizes[size], className)}
         onError={() => setImgError(true)}

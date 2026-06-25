@@ -1,6 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import path from "node:path";
+import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { eq, sql, and, inArray } from "drizzle-orm";
 import { db } from "../db.js";
@@ -8,19 +9,15 @@ import { colaboradores } from "../../shared/schema.js";
 import { colaboradorSchema, bajaSchema, reactivarSchema } from "../../shared/validators.js";
 import { requireAuth, requireModulo, getAllowedDepts, validateBody } from "../middleware/auth.js";
 import type { AuthUser } from "../middleware/auth.js";
+import { isS3Configured, uploadFoto } from "../lib/s3.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, "../../uploads");
 
-const storage = multer.diskStorage({
-  destination: uploadsDir,
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
-    cb(null, `colab_${req.params.id}${ext}`);
-  },
-});
+// Multer uses memory storage — file is uploaded to S3 in production,
+// or written to disk in dev mode when S3 is not configured.
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     cb(null, file.mimetype.startsWith("image/"));
@@ -201,13 +198,23 @@ router.post("/:id/foto", requireAuth, upload.single("foto"), async (req, res, ne
     if (!req.file) {
       return res.status(400).json({ success: false, message: "No se recibió ninguna imagen" });
     }
-    const id = parseInt(req.params.id, 10);
-    await db
-      .update(colaboradores)
-      .set({ foto_perfil: req.file.filename })
-      .where(eq(colaboradores.id, id));
+    const id  = parseInt(req.params.id, 10);
+    const ext = path.extname(req.file.originalname).toLowerCase() || ".jpg";
+    let foto_perfil: string;
 
-    res.json({ success: true, foto_perfil: req.file.filename });
+    if (isS3Configured) {
+      const key = `uploads/colab_${id}${ext}`;
+      foto_perfil = await uploadFoto(key, req.file.buffer, req.file.mimetype);
+    } else {
+      // Dev fallback: write to local uploads/ directory
+      await fs.mkdir(uploadsDir, { recursive: true });
+      const filename = `colab_${id}${ext}`;
+      await fs.writeFile(path.join(uploadsDir, filename), req.file.buffer);
+      foto_perfil = filename;
+    }
+
+    await db.update(colaboradores).set({ foto_perfil }).where(eq(colaboradores.id, id));
+    res.json({ success: true, foto_perfil });
   } catch (err) {
     next(err);
   }
