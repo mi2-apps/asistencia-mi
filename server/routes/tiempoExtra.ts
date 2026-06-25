@@ -92,13 +92,14 @@ router.get("/", requireAuth, requireModulo("tiempo_extra"), async (req, res, nex
       return res.json({ success: true, registros: [] });
     }
 
-    // If user requests a specific dept, verify they have access to it
+    // When a specific dept is requested, enforce access control.
+    // When no dept is specified (Historial view), show all — everyone can see the full weekly overview.
     const effectiveDept = deptQuery && (depts === null || depts.includes(deptQuery)) ? deptQuery : null;
-    const deptsFilter = effectiveDept
-      ? sql`AND c.departamento = ${effectiveDept}`
-      : depts !== null
-        ? sql`AND c.departamento IN (${sql.join(depts.map((d) => sql`${d}`), sql`, `)})`
-        : sql``;
+    const deptsFilter = deptQuery
+      ? effectiveDept
+        ? sql`AND c.departamento = ${effectiveDept}`
+        : sql`AND 1=0`
+      : sql``;
 
     const rows = await db.execute(sql`
       SELECT
