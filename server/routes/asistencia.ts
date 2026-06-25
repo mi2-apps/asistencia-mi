@@ -96,8 +96,9 @@ router.get("/semana", requireAuth, requireModulo("asistencia"), async (req, res,
 
 // POST /api/v1/asistencia — idempotent: UPDATE if exists, INSERT if not (FOR UPDATE)
 router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, next) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const data      = asistenciaSchema.parse(req.body);
     const col       = data.persona_tipo === "usuario" ? "usuario_id" : "colaborador_id";
     const estadoDB  = data.estado.toLowerCase();
@@ -133,10 +134,10 @@ router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, n
     await client.query("COMMIT");
     res.status(existe.rows.length > 0 ? 200 : 201).json({ success: true, asistencia: row });
   } catch (err) {
-    await client.query("ROLLBACK");
+    if (client) await client.query("ROLLBACK").catch(() => {});
     next(err);
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 

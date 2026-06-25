@@ -26,16 +26,25 @@ export function configurePassport() {
     done(null, (user as AuthUser).id);
   });
 
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const [user] = await db
-        .select({ id: usuarios.id, username: usuarios.username, role: usuarios.role, permisos: usuarios.permisos })
-        .from(usuarios)
-        .where(eq(usuarios.id, id));
+  const TRANSIENT_CODES = new Set(["ECONNRESET", "ETIMEDOUT", "57P01", "ENOTFOUND", "ECONNREFUSED"]);
 
-      done(null, user ?? false);
-    } catch (err) {
-      done(err);
+  passport.deserializeUser(async (id: number, done) => {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const [user] = await db
+          .select({ id: usuarios.id, username: usuarios.username, role: usuarios.role, permisos: usuarios.permisos })
+          .from(usuarios)
+          .where(eq(usuarios.id, id));
+
+        return done(null, user ?? false);
+      } catch (err: any) {
+        if (TRANSIENT_CODES.has(err.code) && attempt < 2) {
+          console.warn("[auth] transient DB error in deserializeUser, retrying:", err.code);
+          await new Promise((r) => setTimeout(r, 300));
+          continue;
+        }
+        return done(err);
+      }
     }
   });
 
