@@ -84,9 +84,9 @@ router.post("/", requireAuth, validateBody(colaboradorSchema), async (req, res, 
         apellido:        data.apellido,
         departamento:    data.departamento,
         turno:           data.turno,
-        puesto:          data.puesto,
-        numero_empleado: data.numero_empleado,
-        fecha_ingreso:   data.fecha_ingreso,
+        puesto:          data.puesto || null,
+        numero_empleado: data.numero_empleado || null,
+        fecha_ingreso:   data.fecha_ingreso || null,
       })
       .returning();
 
@@ -111,10 +111,10 @@ router.put("/:id", requireAuth, validateBody(colaboradorSchema), async (req, res
         nombre:          data.nombre,
         apellido:        data.apellido,
         departamento:    data.departamento,
-        turno:           data.turno,
-        puesto:          data.puesto,
-        numero_empleado: data.numero_empleado,
-        fecha_ingreso:   data.fecha_ingreso,
+        turno:           data.turno || null,
+        puesto:          data.puesto || null,
+        numero_empleado: data.numero_empleado || null,
+        fecha_ingreso:   data.fecha_ingreso || null,
         updated_at:      new Date(),
       })
       .where(eq(colaboradores.id, id))
@@ -128,7 +128,8 @@ router.put("/:id", requireAuth, validateBody(colaboradorSchema), async (req, res
     if (err?.code === "23505") {
       return res.status(409).json({ success: false, code: "DUPLICATE", message: "El número de empleado ya está registrado" });
     }
-    next(err);
+    console.error("[PUT colaborador]", err?.message, err?.code, JSON.stringify(req.body).slice(0, 300));
+    return res.status(500).json({ success: false, message: err?.message ?? "Error interno", pgCode: err?.code });
   }
 });
 

@@ -31,7 +31,7 @@ export const colaboradorSchema = z.object({
   apellido:        z.string().min(1).max(100),
   departamento:    z.string().min(1).max(100),
   puesto:          z.string().max(100).optional(),
-  turno:           z.enum(turnos).optional(),
+  turno:           z.string().max(20).optional(),
   numero_empleado: z.string().max(20).optional(),
   fecha_ingreso:   z.string().optional(),
 });

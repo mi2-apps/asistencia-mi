@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Search, Edit2, UserMinus } from "lucide-react";
+import { ArrowLeft, Camera, Search, Edit2, UserMinus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
@@ -56,6 +56,8 @@ export default function Colaboradores() {
   const [tipoBaja, setTipoBaja]           = useState("");
   const [fechaBaja, setFechaBaja]         = useState(new Date().toISOString().slice(0, 10));
   const [motivoBaja, setMotivoBaja]       = useState("");
+  const [fotoPreview, setFotoPreview]     = useState<string | null>(null);
+  const fotoInputRef                      = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery<{ colaboradores: Colaborador[] }>({
@@ -95,7 +97,24 @@ export default function Colaboradores() {
       });
       if (!r.ok) throw new Error("Error al guardar");
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["colaboradores"] }); setEditando(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["colaboradores"] }); setEditando(null); setFotoPreview(null); },
+  });
+
+  const fotoMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: number; file: File }) => {
+      const fd = new FormData();
+      fd.append("foto", file);
+      const r = await fetch(`/api/v1/colaboradores/${id}/foto`, {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      if (!r.ok) throw new Error("Error al subir foto");
+      return r.json() as Promise<{ foto_perfil: string }>;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["colaboradores"] });
+    },
   });
 
   const bajaMutation = useMutation({
@@ -117,6 +136,7 @@ export default function Colaboradores() {
 
   const abrirEditar = (c: Colaborador) => {
     setEditando(c);
+    setFotoPreview(null);
     editForm.reset({
       nombre:          c.nombre,
       apellido:        c.apellido,
@@ -213,6 +233,54 @@ export default function Colaboradores() {
               <button onClick={() => setEditando(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
             </div>
             <form onSubmit={editForm.handleSubmit((d) => editMutation.mutate({ id: editando.id, data: d }))} className="p-5 space-y-4">
+
+              {/* Foto de perfil */}
+              <div className="flex flex-col items-center gap-1.5 pb-1">
+                <div
+                  className="relative group cursor-pointer"
+                  onClick={() => fotoInputRef.current?.click()}
+                  title="Cambiar foto de perfil"
+                >
+                  {fotoPreview ? (
+                    <img src={fotoPreview} alt="preview" className="w-20 h-20 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <Avatar
+                      nombre={editando.nombre}
+                      apellido={editando.apellido}
+                      fotoPerfil={editando.foto_perfil}
+                      size="lg"
+                      className="w-20 h-20 text-2xl"
+                    />
+                  )}
+                  <div className="absolute inset-0 rounded-full bg-black/45 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    {fotoMutation.isPending ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Camera size={20} className="text-white" />
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {fotoMutation.isPending ? "Subiendo..." : fotoMutation.isSuccess ? "Foto actualizada" : "Click para cambiar foto"}
+                </p>
+                {fotoMutation.isError && (
+                  <p className="text-xs text-destructive">Error al subir la foto</p>
+                )}
+                <input
+                  ref={fotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setFotoPreview(URL.createObjectURL(file));
+                    fotoMutation.mutate({ id: editando.id, file });
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <Field label={t("nombre")} error={editForm.formState.errors.nombre?.message}>
                   <input {...editForm.register("nombre")} className={inputCls} />
@@ -232,6 +300,10 @@ export default function Colaboradores() {
                   <select {...editForm.register("turno")} className={inputCls}>
                     <option value="">{t("selectTurno")}</option>
                     {TURNOS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    {/* Opción legacy: si el valor en DB no está en la lista estándar */}
+                    {editando.turno && !TURNOS.includes(editando.turno as typeof TURNOS[number]) && (
+                      <option value={editando.turno}>{editando.turno} (legacy)</option>
+                    )}
                   </select>
                 </Field>
                 <Field label={t("noEmpleado")}>
