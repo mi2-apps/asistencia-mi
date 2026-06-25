@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { cn, formatFecha, toLocalISO } from "@client/lib/utils";
 import { Avatar } from "@client/components/ui/Avatar";
 import { TIPOS_INASISTENCIA, DEPARTAMENTOS_LIST } from "@shared/constants";
@@ -73,6 +73,10 @@ export default function Historial() {
   const [filtroDept, setDept]       = useState("");
   const [filtroTurno, setTurno]     = useState("");
   const [tabActiva, setTabActiva]   = useState<"asistencia" | "tiempo-extra">("asistencia");
+  const [colabModal, setColabModal] = useState<{
+    info: { nombre: string; apellido: string; fullname: string; numero_empleado: string | null; puesto: string | null; departamento: string | null; turno?: string | null; foto_perfil: string | null };
+    dias: Map<string, RegistroSemana>;
+  } | null>(null);
 
   const { t } = useTranslation();
 
@@ -361,7 +365,11 @@ export default function Historial() {
               ) : byColaborador.length === 0 ? (
                 <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">{t("historial:noRecords")}</td></tr>
               ) : colaboradoresFiltrados.map(({ info, dias: dm }) => (
-                <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
+                <tr
+                  key={info.colaborador_id}
+                  className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
+                  onClick={() => setColabModal({ info, dias: dm })}
+                >
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
                       <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" />
@@ -420,7 +428,14 @@ export default function Historial() {
               ) : colaboradoresFiltradosTE.length === 0 ? (
                 <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">{t("historial:noOvertimeRecords")}</td></tr>
               ) : colaboradoresFiltradosTE.map(({ info, dias: dm }) => (
-                <tr key={info.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
+                <tr
+                  key={info.colaborador_id}
+                  className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
+                  onClick={() => {
+                    const asist = byColaborador.find(c => c.info.colaborador_id === info.colaborador_id);
+                    setColabModal(asist ?? { info: { ...info, turno: null }, dias: new Map() });
+                  }}
+                >
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
                       <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" />
@@ -458,6 +473,116 @@ export default function Historial() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal: resumen de colaborador */}
+      {colabModal && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setColabModal(null)}
+        >
+          <div
+            className="bg-card rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-border">
+              <div className="flex items-start gap-4">
+                <Avatar
+                  nombre={colabModal.info.nombre}
+                  apellido={colabModal.info.apellido}
+                  fotoPerfil={colabModal.info.foto_perfil}
+                  size="lg"
+                  className="flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-lg leading-tight">{colabModal.info.fullname}</h3>
+                  {colabModal.info.puesto && (
+                    <p className="text-sm text-muted-foreground mt-0.5">{colabModal.info.puesto}</p>
+                  )}
+                  {colabModal.info.departamento && (
+                    <p className="text-sm text-muted-foreground">{colabModal.info.departamento}</p>
+                  )}
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {colabModal.info.numero_empleado && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded-full">#{colabModal.info.numero_empleado}</span>
+                    )}
+                    {colabModal.info.turno && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{colabModal.info.turno}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setColabModal(null)}
+                  className="flex-shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Asistencia semana */}
+            <div className="p-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Asistencia &middot; {lunes.toLocaleDateString("es-MX", { day: "numeric", month: "short" })} &ndash; {sabado.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+              </p>
+              <div>
+                {dias.map(d => {
+                  const iso = toISO(d);
+                  const reg = colabModal.dias.get(iso);
+                  return (
+                    <div key={iso} className="flex items-center gap-3 py-2.5 border-b border-border/40 last:border-0">
+                      <span className="text-sm text-muted-foreground w-28 shrink-0 capitalize">
+                        {d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })}
+                      </span>
+                      <div className="flex-1 flex items-center gap-2 flex-wrap">
+                        {!reg ? (
+                          <span className="text-xs text-muted-foreground">Sin registro</span>
+                        ) : reg.estado === "Presente" ? (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Presente ✓</span>
+                        ) : (
+                          <>
+                            <span className={cn("inline-block px-2.5 py-0.5 rounded-full text-xs font-medium", TIPO_COLORS[reg.tipo_inasistencia ?? "FI"] ?? "bg-gray-100 text-gray-600")}>
+                              {TIPOS_INASISTENCIA.find(ti => ti.code === reg.tipo_inasistencia)?.label ?? reg.tipo_inasistencia ?? "Inasistencia"}
+                            </span>
+                            {reg.notas && <span className="text-xs text-muted-foreground truncate">{reg.notas}</span>}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Resumen */}
+              {(() => {
+                const presentes     = dias.filter(d => colabModal.dias.get(toISO(d))?.estado === "Presente").length;
+                const inasistencias = dias.filter(d => { const r = colabModal.dias.get(toISO(d)); return r && r.estado !== "Presente"; }).length;
+                const sinRegistro   = dias.filter(d => !colabModal.dias.get(toISO(d))).length;
+                return (
+                  <div className="mt-4 pt-3 border-t border-border flex flex-wrap gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-xs text-muted-foreground">{presentes} presente{presentes !== 1 ? "s" : ""}</span>
+                    </div>
+                    {inasistencias > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-xs text-muted-foreground">{inasistencias} inasistencia{inasistencias !== 1 ? "s" : ""}</span>
+                      </div>
+                    )}
+                    {sinRegistro > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-gray-300" />
+                        <span className="text-xs text-muted-foreground">{sinRegistro} sin registro</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
     </div>
