@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn, iniciales } from "@client/lib/utils";
 
 interface AvatarProps {
@@ -15,12 +16,15 @@ const sizes = {
 };
 
 export function Avatar({ nombre, apellido, fotoPerfil, size = "md", className }: AvatarProps) {
-  if (fotoPerfil) {
+  const [imgError, setImgError] = useState(false);
+
+  if (fotoPerfil && !imgError) {
     return (
       <img
         src={`/uploads/${fotoPerfil}`}
         alt={`${nombre} ${apellido ?? ""}`}
         className={cn("rounded-full object-cover flex-shrink-0", sizes[size], className)}
+        onError={() => setImgError(true)}
       />
     );
   }
