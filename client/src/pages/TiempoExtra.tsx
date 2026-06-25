@@ -2,13 +2,14 @@ import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Clock, History, Search, X, CheckCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Download, History, Search, X, CheckCircle } from "lucide-react";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
 import { DEPARTAMENTOS_LIST, DEPT_COLORS } from "@shared/constants";
 import { useAuthStore } from "@client/stores/authStore";
 import { tiempoExtraSchema, type TiempoExtraInput } from "@shared/validators";
 import { cn, toLocalISO } from "@client/lib/utils";
+import { generarPDFTiempoExtra } from "@client/lib/pdfTiempoExtra";
 
 interface ColabRow {
   id: number;
@@ -243,6 +244,15 @@ export default function TiempoExtra() {
           </button>
         )}
         <h2 className="text-xl font-semibold">{titulo}</h2>
+        {vista === "historial-detalle" && semanaActual && (detalleData?.registros?.length ?? 0) > 0 && (
+          <button
+            onClick={() => void generarPDFTiempoExtra(detalleData!.registros, semanaActual, deptActual!)}
+            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium transition-colors"
+          >
+            <Download size={15} />
+            Descargar PDF
+          </button>
+        )}
       </div>
 
       {/* ── Vista: Departamentos ── */}
