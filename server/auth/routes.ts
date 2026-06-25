@@ -18,34 +18,52 @@ const loginLimiter = rateLimit({
 
 const router = Router();
 
+const BASE_STYLES = `
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       background:#ffffff;min-height:100vh;display:flex}
+  .panel-left{background:#0A1929;width:42%;display:flex;flex-direction:column;
+              align-items:center;justify-content:center;padding:3rem;min-height:100vh}
+  .panel-left img{width:200px;filter:brightness(0) invert(1);margin-bottom:2.5rem}
+  .panel-left h1{color:white;font-size:1.4rem;font-weight:700;margin-bottom:.75rem;text-align:center}
+  .panel-left p{color:rgba(255,255,255,.55);font-size:.85rem;text-align:center;line-height:1.6;max-width:240px}
+  .panel-right{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem;background:#f8f9fb}
+  .card{background:white;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:360px;
+        border:1px solid #e5e7eb}
+  .card-title{font-size:1.1rem;font-weight:700;color:#0A1929;margin-bottom:.4rem}
+  .card-sub{font-size:.85rem;color:#6b7280;margin-bottom:2rem;line-height:1.5}
+  .btn{display:block;width:100%;background:#0A1929;color:white;text-decoration:none;border:none;
+       border-radius:10px;padding:.85rem;font-size:.95rem;font-weight:600;cursor:pointer;
+       text-align:center;transition:background .15s}
+  .btn:hover{background:#1a3a5c}
+  .btn-outline{background:white;color:#0A1929;border:1.5px solid #0A1929;margin-top:.75rem}
+  .btn-outline:hover{background:#f0f4f8}
+  .err{color:#ef4444;font-size:.85rem;background:#fff5f5;border:1px solid #fecaca;
+       border-radius:8px;padding:.65rem .9rem;margin-bottom:1.25rem}
+  @media(max-width:640px){.panel-left{display:none}.panel-right{background:white}}
+`;
+
 const ERROR_PAGE = (msg: string) => `<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Error de autenticación</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-         background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center}
-    .card{background:white;border-radius:14px;padding:2rem;width:100%;max-width:380px;
-          box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}
-    .logo{background:#0A1929;color:white;border-radius:8px;padding:.5rem 1rem;
-          font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-          display:inline-block;margin-bottom:1.5rem}
-    h1{font-size:1.1rem;margin-bottom:.5rem;color:#111}
-    .err{color:#ef4444;font-size:.9rem;margin-bottom:1.5rem;padding:0 .5rem}
-    a{display:inline-block;background:#0A1929;color:white;text-decoration:none;
-      border-radius:8px;padding:.7rem 1.5rem;font-size:.95rem;font-weight:600}
-    a:hover{background:#1e3a5f}
-  </style>
+  <title>Error de autenticación — MI Technologies</title>
+  <style>${BASE_STYLES}</style>
 </head>
 <body>
-  <div class="card">
-    <div class="logo">MI Technologies</div>
-    <h1>Error de inicio de sesión</h1>
-    <p class="err">${msg}</p>
-    <a href="/auth/login">Intentar de nuevo</a>
+  <div class="panel-left">
+    <img src="/assets/mi_logo.png" alt="MI Technologies"/>
+    <h1>Control de Asistencia</h1>
+    <p>Sistema de gestión de asistencia del personal de MI Technologies, Inc.</p>
+  </div>
+  <div class="panel-right">
+    <div class="card">
+      <p class="card-title">Error de inicio de sesión</p>
+      <p class="card-sub">No fue posible completar la autenticación.</p>
+      <div class="err">${msg}</div>
+      <a href="/auth/login" class="btn">Intentar de nuevo</a>
+    </div>
   </div>
 </body>
 </html>`;
@@ -64,49 +82,41 @@ router.get("/login", loginLimiter, (req, res, next) => {
   }
 
   // Dev mode: serve a simple login form
-  const error = "";
   res.send(`<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Iniciar sesión — asistencia-mi (DEV)</title>
+  <title>Iniciar sesión — MI Technologies</title>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-         background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center}
-    .card{background:white;border-radius:14px;padding:2rem;width:100%;max-width:360px;
-          box-shadow:0 4px 24px rgba(0,0,0,.08)}
-    .logo{background:#0A1929;color:white;border-radius:8px;padding:.5rem 1rem;
-          font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-          display:inline-block;margin-bottom:1.5rem}
-    h1{font-size:1.25rem;margin-bottom:.4rem}
-    p.sub{font-size:.8rem;color:#6b7280;margin-bottom:1.5rem}
-    label{font-size:.85rem;font-weight:500;display:block;margin-bottom:.4rem}
-    input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:.6rem .9rem;
-          font-size:.95rem;margin-bottom:1rem;outline:none}
-    input:focus{border-color:#0A1929;box-shadow:0 0 0 2px rgba(10,25,41,.15)}
-    button{width:100%;background:#0A1929;color:white;border:none;border-radius:8px;
-           padding:.7rem;font-size:.95rem;font-weight:600;cursor:pointer}
-    button:hover{background:#1e3a5f}
-    .dev-badge{font-size:.7rem;color:#f59e0b;background:#fffbeb;border:1px solid #fcd34d;
-               border-radius:6px;padding:.2rem .6rem;margin-top:1rem;display:block;text-align:center}
+    ${BASE_STYLES}
+    label{font-size:.85rem;font-weight:500;color:#374151;display:block;margin-bottom:.35rem}
+    input{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:.65rem .9rem;
+          font-size:.95rem;margin-bottom:1rem;outline:none;color:#111}
+    input:focus{border-color:#0A1929;box-shadow:0 0 0 2px rgba(10,25,41,.12)}
+    .dev-badge{font-size:.72rem;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;
+               border-radius:6px;padding:.3rem .75rem;margin-top:1rem;display:block;text-align:center}
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="logo">MI Technologies</div>
+  <div class="panel-left">
+    <img src="/assets/mi_logo.png" alt="MI Technologies"/>
     <h1>Control de Asistencia</h1>
-    <p class="sub">Inicia sesión con tu usuario del sistema</p>
-    ${error}
-    <form method="POST" action="/auth/dev-login">
-      <label>Usuario</label>
-      <input name="username" type="text" autocomplete="username" required autofocus/>
-      <label>Contraseña</label>
-      <input name="password" type="password" autocomplete="current-password" required/>
-      <button type="submit">Entrar</button>
-    </form>
-    <span class="dev-badge">⚙️ Modo desarrollo — SSO Nextcloud no configurado</span>
+    <p>Sistema de gestión de asistencia del personal de MI Technologies, Inc.</p>
+  </div>
+  <div class="panel-right">
+    <div class="card">
+      <p class="card-title">Iniciar sesión</p>
+      <p class="card-sub">Ingresa tus credenciales de acceso al sistema.</p>
+      <form method="POST" action="/auth/dev-login">
+        <label>Usuario</label>
+        <input name="username" type="text" autocomplete="username" required autofocus/>
+        <label>Contraseña</label>
+        <input name="password" type="password" autocomplete="current-password" required/>
+        <button type="submit" class="btn">Entrar</button>
+      </form>
+      <span class="dev-badge">⚙️ Modo desarrollo — SSO Nextcloud no configurado</span>
+    </div>
   </div>
 </body>
 </html>`);
@@ -164,28 +174,20 @@ router.get("/logged-out", (_req, res) => {
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Sesión cerrada — MI Technologies</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-         background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center}
-    .card{background:white;border-radius:14px;padding:2rem;width:100%;max-width:360px;
-          box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}
-    .logo{background:#0A1929;color:white;border-radius:8px;padding:.5rem 1rem;
-          font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-          display:inline-block;margin-bottom:1.5rem}
-    h1{font-size:1.1rem;margin-bottom:.5rem;color:#111}
-    p{font-size:.9rem;color:#6b7280;margin-bottom:1.5rem}
-    a{display:inline-block;background:#0A1929;color:white;text-decoration:none;
-      border-radius:8px;padding:.7rem 1.5rem;font-size:.95rem;font-weight:600}
-    a:hover{background:#1e3a5f}
-  </style>
+  <style>${BASE_STYLES}</style>
 </head>
 <body>
-  <div class="card">
-    <div class="logo">MI Technologies</div>
-    <h1>Sesión cerrada</h1>
-    <p>Tu sesión ha sido cerrada correctamente.</p>
-    <a href="/auth/login">Iniciar sesión</a>
+  <div class="panel-left">
+    <img src="/assets/mi_logo.png" alt="MI Technologies"/>
+    <h1>Control de Asistencia</h1>
+    <p>Sistema de gestión de asistencia del personal de MI Technologies, Inc.</p>
+  </div>
+  <div class="panel-right">
+    <div class="card">
+      <p class="card-title">Sesión cerrada</p>
+      <p class="card-sub">Tu sesión ha sido cerrada correctamente. Puedes volver a iniciar sesión cuando lo necesites.</p>
+      <a href="/auth/login" class="btn">Iniciar sesión</a>
+    </div>
   </div>
 </body>
 </html>`);
