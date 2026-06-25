@@ -82,9 +82,9 @@ export default function UserManual() {
   const section = SECTIONS.find((s) => s.id === activeSection)!;
 
   return (
-    <div className="p-6 flex gap-6 max-w-4xl">
-      {/* TOC */}
-      <aside className="w-44 flex-shrink-0">
+    <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 max-w-4xl">
+      {/* TOC — solo desktop */}
+      <aside className="hidden md:block w-44 flex-shrink-0">
         <div className="flex items-center gap-2 mb-4">
           <BookOpen size={15} className="text-muted-foreground" />
           <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">Módulos</span>
@@ -109,6 +109,30 @@ export default function UserManual() {
 
       {/* Content */}
       <div className="flex-1 min-w-0">
+        {/* Selector de sección — solo móvil */}
+        <div className="md:hidden mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen size={14} className="text-muted-foreground" />
+            <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">Módulos</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id)}
+                className={cn(
+                  "text-xs px-3 py-1.5 rounded-full border transition-colors",
+                  activeSection === s.id
+                    ? "bg-primary text-primary-foreground border-primary font-medium"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {s.title.replace("Módulo de ", "")}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <h2 className="text-xl font-semibold mb-5">{section.title}</h2>
         <div className="space-y-5">
           {section.content.map((item) => (

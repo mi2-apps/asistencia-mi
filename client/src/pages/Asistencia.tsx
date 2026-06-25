@@ -130,33 +130,33 @@ export default function Asistencia() {
   if (isLoading) return <div className="p-8 text-muted-foreground text-sm">{t("loading")}</div>;
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+    <div className="p-4 md:p-6">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           {deptActual && (
             <button
               onClick={() => { setDeptActual(null); setBusqueda(""); }}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
             >
               <ArrowLeft size={15} />
             </button>
           )}
-          <h2 className="text-xl font-semibold">{deptActual ?? t("asistencia:title")}</h2>
+          <h2 className="text-lg md:text-xl font-semibold truncate">{deptActual ?? t("asistencia:title")}</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <div className="relative">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder={t("asistencia:searchPlaceholder")}
-              className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-44"
+              className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-32 md:w-44"
             />
           </div>
           {user?.role === "admin" && (
             <button
               onClick={() => { if (confirm(t("asistencia:clearDayConfirm"))) limpiarDiaMutation.mutate(); }}
-              className="flex items-center gap-1.5 text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-md border border-destructive/30 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-destructive hover:bg-destructive/10 px-2.5 py-1.5 rounded-md border border-destructive/30 transition-colors whitespace-nowrap"
             >
               <Trash2 size={13} /> {t("asistencia:clearDay")}
             </button>
@@ -180,57 +180,46 @@ export default function Asistencia() {
           })}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40 text-left">
-                <th className="px-4 py-3 font-medium text-muted-foreground">{t("asistencia:employee")}</th>
-                <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:payroll")}</th>
-                <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:position")}</th>
-                <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:status")}</th>
-                <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filas.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-10 text-muted-foreground">
-                    {todosRegistrados ? (
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-2xl">✓</span>
-                        <span className="font-medium text-green-600">{t("asistencia:allRegistered")}</span>
-                        <span className="text-xs">{t("asistencia:allRegisteredDesc")}</span>
-                      </div>
-                    ) : t("asistencia:noEmployees")}
-                  </td>
-                </tr>
-              ) : filas.map((r) => (
-                <tr key={r.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-2">
+        <>
+          {filas.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground rounded-xl border border-border">
+              {todosRegistrados ? (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-2xl">✓</span>
+                  <span className="font-medium text-green-600">{t("asistencia:allRegistered")}</span>
+                  <span className="text-xs">{t("asistencia:allRegisteredDesc")}</span>
+                </div>
+              ) : t("asistencia:noEmployees")}
+            </div>
+          ) : (
+            <>
+              {/* Móvil: tarjetas */}
+              <div className="md:hidden space-y-2">
+                {filas.map((r) => (
+                  <div key={r.colaborador_id} className="rounded-xl border border-border bg-card p-3">
+                    <div className="flex items-center gap-3 mb-3">
                       <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
-                      <span className="font-medium">{r.fullname}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm leading-tight">{r.fullname}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {[r.numero_empleado, r.puesto].filter(Boolean).join(" · ") || "—"}
+                        </p>
+                      </div>
+                      {r.estado && (
+                        <div className="flex-shrink-0">
+                          {r.estado === "Presente" ? (
+                            <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">{r.tipo_inasistencia ?? t("asistencia:absence")}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">{r.numero_empleado ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{r.puesto ?? "—"}</td>
-                  <td className="px-3 py-2">
-                    {!r.estado ? (
-                      <span className="text-muted-foreground">{t("asistencia:noRecord")}</span>
-                    ) : r.estado === "Presente" ? (
-                      <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">
-                        {r.tipo_inasistencia ?? t("asistencia:absence")}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex gap-2">
                       <button
                         onClick={() => registrarMutation.mutate({ persona_id: r.colaborador_id, estado: "Presente" })}
                         className={cn(
-                          "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                          "flex-1 py-1.5 text-xs rounded-md border transition-colors",
                           r.estado === "Presente"
                             ? "bg-green-500 text-white border-green-500"
                             : "border-green-500 text-green-600 hover:bg-green-50"
@@ -241,7 +230,7 @@ export default function Asistencia() {
                       <button
                         onClick={() => abrirModal(r)}
                         className={cn(
-                          "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                          "flex-1 py-1.5 text-xs rounded-md border transition-colors",
                           r.estado === "Inasistencia"
                             ? "bg-red-500 text-white border-red-500"
                             : "border-red-400 text-red-500 hover:bg-red-50"
@@ -250,12 +239,78 @@ export default function Asistencia() {
                         {t("asistencia:absence")}
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: tabla */}
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40 text-left">
+                      <th className="px-4 py-3 font-medium text-muted-foreground">{t("asistencia:employee")}</th>
+                      <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:payroll")}</th>
+                      <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:position")}</th>
+                      <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:status")}</th>
+                      <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filas.map((r) => (
+                      <tr key={r.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-2">
+                            <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
+                            <span className="font-medium">{r.fullname}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{r.numero_empleado ?? "—"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{r.puesto ?? "—"}</td>
+                        <td className="px-3 py-2">
+                          {!r.estado ? (
+                            <span className="text-muted-foreground">{t("asistencia:noRecord")}</span>
+                          ) : r.estado === "Presente" ? (
+                            <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+                              {r.tipo_inasistencia ?? t("asistencia:absence")}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => registrarMutation.mutate({ persona_id: r.colaborador_id, estado: "Presente" })}
+                              className={cn(
+                                "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                                r.estado === "Presente"
+                                  ? "bg-green-500 text-white border-green-500"
+                                  : "border-green-500 text-green-600 hover:bg-green-50"
+                              )}
+                            >
+                              {t("asistencia:present")}
+                            </button>
+                            <button
+                              onClick={() => abrirModal(r)}
+                              className={cn(
+                                "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                                r.estado === "Inasistencia"
+                                  ? "bg-red-500 text-white border-red-500"
+                                  : "border-red-400 text-red-500 hover:bg-red-50"
+                              )}
+                            >
+                              {t("asistencia:absence")}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </>
       )}
 
       {/* Inasistencia modal */}

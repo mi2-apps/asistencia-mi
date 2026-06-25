@@ -190,9 +190,48 @@ export default function Historial() {
   }, [colaboradoresFiltrados, byColaborador, data]);
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6">
+      {/* Header móvil */}
+      <div className="md:hidden mb-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">{t("historial:title")}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {lunes.toLocaleDateString("es-MX", { month: "long", year: "numeric" })}
+            </p>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setOffset((o) => o - 1)} className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors">
+              <ChevronLeft size={15} />
+            </button>
+            <span className="text-xs font-medium px-1 whitespace-nowrap">
+              {lunes.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+              {" — "}
+              {sabado.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+            </span>
+            <button onClick={() => setOffset((o) => o + 1)} disabled={offset >= 0} className={cn("p-1.5 rounded-lg border border-border hover:bg-muted transition-colors", offset >= 0 && "opacity-40 cursor-not-allowed")}>
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
+        <div className="relative">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder={t("historial:searchPlaceholder")} className="w-full pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+        <div className="flex gap-2">
+          <select value={filtroDept} onChange={(e) => setDept(e.target.value)} className="flex-1 py-1.5 px-2 text-xs border border-input rounded-md bg-background focus:outline-none">
+            <option value="">{t("allDepts")}</option>
+            {deptList.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <select value={filtroTurno} onChange={(e) => setTurno(e.target.value)} className="flex-1 py-1.5 px-2 text-xs border border-input rounded-md bg-background focus:outline-none">
+            <option value="">{t("allShifts")}</option>
+            {turnos.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Header desktop */}
+      <div className="hidden md:flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold">{t("historial:title")}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -202,110 +241,79 @@ export default function Historial() {
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <div className="relative">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder={t("historial:searchPlaceholder")}
-              className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-44"
-            />
+            <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder={t("historial:searchPlaceholder")} className="pl-8 pr-3 py-1.5 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-44" />
           </div>
-          <select
-            value={filtroDept}
-            onChange={(e) => setDept(e.target.value)}
-            className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          >
+          <select value={filtroDept} onChange={(e) => setDept(e.target.value)} className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring">
             <option value="">{t("allDepts")}</option>
-            {deptList.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
+            {deptList.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
-          <select
-            value={filtroTurno}
-            onChange={(e) => setTurno(e.target.value)}
-            className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          >
+          <select value={filtroTurno} onChange={(e) => setTurno(e.target.value)} className="py-1.5 px-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring">
             <option value="">{t("allShifts")}</option>
-            {turnos.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
+            {turnos.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
-          <button
-            onClick={() => setOffset((o) => o - 1)}
-            className="p-2 rounded-lg border border-border hover:bg-muted transition-colors"
-          >
-            <ChevronLeft size={16} />
-          </button>
+          <button onClick={() => setOffset((o) => o - 1)} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors"><ChevronLeft size={16} /></button>
           <span className="text-sm font-medium px-2 whitespace-nowrap">
             {lunes.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
             {" — "}
             {sabado.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
           </span>
-          <button
-            onClick={() => setOffset((o) => o + 1)}
-            disabled={offset >= 0}
-            className={cn(
-              "p-2 rounded-lg border border-border hover:bg-muted transition-colors",
-              offset >= 0 && "opacity-40 cursor-not-allowed"
-            )}
-          >
-            <ChevronRight size={16} />
-          </button>
+          <button onClick={() => setOffset((o) => o + 1)} disabled={offset >= 0} className={cn("p-2 rounded-lg border border-border hover:bg-muted transition-colors", offset >= 0 && "opacity-40 cursor-not-allowed")}><ChevronRight size={16} /></button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 md:gap-3 mb-4 md:mb-5">
         {/* Colaboradores */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiEmployees")}</p>
-          <div className="flex gap-4">
-            <div className="text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">{t("historial:kpiActive")}</p>
-              <p className="text-2xl font-bold text-blue-600">{kpis.activos}</p>
+        <div className="rounded-xl border border-border bg-card p-2.5 md:p-4">
+          <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{t("historial:kpiEmployees")}</p>
+          <div className="flex gap-2 md:gap-4">
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase">{t("historial:kpiActive")}</p>
+              <p className="text-lg md:text-2xl font-bold text-blue-600">{kpis.activos}</p>
             </div>
             <div className="w-px bg-border" />
-            <div className="text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">{t("historial:kpiTerminated")}</p>
-              <p className="text-2xl font-bold text-slate-500">{kpis.bajas}</p>
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase">{t("historial:kpiTerminated")}</p>
+              <p className="text-lg md:text-2xl font-bold text-slate-500">{kpis.bajas}</p>
             </div>
           </div>
         </div>
         {/* Asistencia promedio */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiAvgAttendance")}</p>
-          <p className="text-2xl font-bold text-green-600">{kpis.promedio}%</p>
-          <p className="text-xs text-muted-foreground mt-1">{t("historial:kpiPresentOf", { present: kpis.presentes, total: kpis.totalRegistros })}</p>
+        <div className="rounded-xl border border-border bg-card p-2.5 md:p-4">
+          <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{t("historial:kpiAvgAttendance")}</p>
+          <p className="text-lg md:text-2xl font-bold text-green-600">{kpis.promedio}%</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 leading-tight">{t("historial:kpiPresentOf", { present: kpis.presentes, total: kpis.totalRegistros })}</p>
         </div>
         {/* Inasistencias */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiAbsences")}</p>
-          <p className="text-2xl font-bold text-red-600">{kpis.inasistencias}</p>
-          <p className="text-xs text-muted-foreground mt-1">{t("historial:kpiAbsencesDesc")}</p>
+        <div className="rounded-xl border border-border bg-card p-2.5 md:p-4">
+          <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{t("historial:kpiAbsences")}</p>
+          <p className="text-lg md:text-2xl font-bold text-red-600">{kpis.inasistencias}</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 leading-tight">{t("historial:kpiAbsencesDesc")}</p>
         </div>
         {/* Desglose */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiBreakdown")}</p>
-          <div className="flex gap-3">
-            <div className="text-center">
-              <p className="text-[10px] text-green-600 uppercase font-medium">{t("historial:kpiPresent")}</p>
-              <p className="text-lg font-bold text-green-600">{kpis.presentes}</p>
+        <div className="rounded-xl border border-border bg-card p-2.5 md:p-4">
+          <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{t("historial:kpiBreakdown")}</p>
+          <div className="flex gap-2 md:gap-3">
+            <div>
+              <p className="text-[9px] text-green-600 uppercase font-medium">{t("historial:kpiPresent")}</p>
+              <p className="text-base md:text-lg font-bold text-green-600">{kpis.presentes}</p>
             </div>
             <div className="w-px bg-border" />
-            <div className="text-center">
-              <p className="text-[10px] text-red-500 uppercase font-medium">{t("historial:kpiAbsent")}</p>
-              <p className="text-lg font-bold text-red-500">{kpis.inasistencias}</p>
+            <div>
+              <p className="text-[9px] text-red-500 uppercase font-medium">{t("historial:kpiAbsent")}</p>
+              <p className="text-base md:text-lg font-bold text-red-500">{kpis.inasistencias}</p>
             </div>
             <div className="w-px bg-border" />
-            <div className="text-center">
-              <p className="text-[10px] text-amber-500 uppercase font-medium">{t("historial:kpiNoRecord")}</p>
-              <p className="text-lg font-bold text-amber-500">{kpis.sinRegistrar}</p>
+            <div>
+              <p className="text-[9px] text-amber-500 uppercase font-medium leading-tight">SIN<br/>REG.</p>
+              <p className="text-base md:text-lg font-bold text-amber-500">{kpis.sinRegistrar}</p>
             </div>
           </div>
         </div>
-        {/* Depto con más faltas */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t("historial:kpiMostAbsences")}</p>
-          <p className="text-lg font-bold text-foreground truncate">{kpis.deptMasFaltas}</p>
+        {/* Depto con más faltas — full width en móvil */}
+        <div className="col-span-2 lg:col-span-1 rounded-xl border border-border bg-card p-2.5 md:p-4">
+          <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{t("historial:kpiMostAbsences")}</p>
+          <p className="text-base md:text-lg font-bold text-foreground truncate">{kpis.deptMasFaltas}</p>
         </div>
       </div>
 
@@ -342,18 +350,18 @@ export default function Historial() {
 
       {/* Table: Asistencia */}
       {tabActiva === "asistencia" && (
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
+        <div className="rounded-xl border border-border overflow-hidden">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">{t("historial:employee")}</th>
+                <th className="text-left px-2 md:px-4 py-3 font-medium text-muted-foreground w-[130px] md:w-48">{t("historial:employee")}</th>
                 {dias.map((d) => (
-                  <th key={d.toISOString()} className="text-center px-2 py-3 font-medium text-muted-foreground min-w-[90px]">
-                    <span className="block text-xs uppercase">
-                      {d.toLocaleDateString("es-MX", { weekday: "short" })}
+                  <th key={d.toISOString()} className="text-center py-3 font-medium text-muted-foreground">
+                    <span className="block text-[10px] md:text-xs uppercase">
+                      {d.toLocaleDateString("es-MX", { weekday: "short" }).slice(0, 3)}
                     </span>
-                    <span className="block text-sm">
-                      {d.toLocaleDateString("es-MX", { day: "numeric", month: "numeric" })}
+                    <span className="block text-[10px] md:text-sm">
+                      {d.toLocaleDateString("es-MX", { day: "numeric" })}
                     </span>
                   </th>
                 ))}
@@ -370,12 +378,12 @@ export default function Historial() {
                   className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
                   onClick={() => setColabModal({ info, dias: dm })}
                 >
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" />
-                      <div>
-                        <p className="font-medium leading-tight">{info.fullname}</p>
-                        <p className="text-xs text-muted-foreground">{info.puesto}</p>
+                  <td className="px-2 md:px-4 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" className="flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium leading-tight truncate text-[11px] md:text-sm">{info.fullname}</p>
+                        <p className="text-[10px] md:text-xs text-muted-foreground truncate hidden md:block">{info.puesto}</p>
                       </div>
                     </div>
                   </td>
@@ -383,13 +391,13 @@ export default function Historial() {
                     const iso = toISO(d);
                     const reg = dm.get(iso);
                     return (
-                      <td key={iso} className="text-center px-2 py-2">
+                      <td key={iso} className="text-center px-0.5 md:px-2 py-2">
                         {!reg ? (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground text-xs">—</span>
                         ) : reg.estado === "Presente" ? (
-                          <span className="inline-block px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">✓</span>
+                          <span className="inline-block px-1 md:px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] md:text-xs font-medium">✓</span>
                         ) : (
-                          <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", TIPO_COLORS[reg.tipo_inasistencia ?? "FI"] ?? "bg-gray-100 text-gray-600")}>
+                          <span className={cn("inline-block px-1 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium", TIPO_COLORS[reg.tipo_inasistencia ?? "FI"] ?? "bg-gray-100 text-gray-600")}>
                             {reg.tipo_inasistencia ?? "?"}
                           </span>
                         )}
@@ -405,18 +413,18 @@ export default function Historial() {
 
       {/* Table: Tiempo Extra */}
       {tabActiva === "tiempo-extra" && (
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
+        <div className="rounded-xl border border-border overflow-hidden">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-48">{t("historial:employee")}</th>
+                <th className="text-left px-2 md:px-4 py-3 font-medium text-muted-foreground w-[130px] md:w-48">{t("historial:employee")}</th>
                 {diasTE.map((d) => (
-                  <th key={d.toISOString()} className="text-center px-2 py-3 font-medium text-muted-foreground min-w-[110px]">
-                    <span className="block text-xs uppercase">
-                      {d.toLocaleDateString("es-MX", { weekday: "short" })}
+                  <th key={d.toISOString()} className="text-center py-3 font-medium text-muted-foreground">
+                    <span className="block text-[10px] md:text-xs uppercase">
+                      {d.toLocaleDateString("es-MX", { weekday: "short" }).slice(0, 3)}
                     </span>
-                    <span className="block text-sm">
-                      {d.toLocaleDateString("es-MX", { day: "numeric", month: "numeric" })}
+                    <span className="block text-[10px] md:text-sm">
+                      {d.toLocaleDateString("es-MX", { day: "numeric" })}
                     </span>
                   </th>
                 ))}
@@ -436,12 +444,12 @@ export default function Historial() {
                     setColabModal(asist ?? { info: { ...info, turno: null }, dias: new Map() });
                   }}
                 >
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" />
-                      <div>
-                        <p className="font-medium leading-tight">{info.fullname}</p>
-                        <p className="text-xs text-muted-foreground">{info.puesto}</p>
+                  <td className="px-2 md:px-4 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" className="flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium leading-tight truncate text-[11px] md:text-sm">{info.fullname}</p>
+                        <p className="text-[10px] md:text-xs text-muted-foreground truncate hidden md:block">{info.puesto}</p>
                       </div>
                     </div>
                   </td>
@@ -450,8 +458,8 @@ export default function Historial() {
                     const regs = dm.get(iso);
                     if (!regs || regs.length === 0) {
                       return (
-                        <td key={iso} className="text-center px-2 py-2">
-                          <span className="text-muted-foreground">—</span>
+                        <td key={iso} className="text-center px-0.5 md:px-2 py-2">
+                          <span className="text-muted-foreground text-xs">—</span>
                         </td>
                       );
                     }
@@ -459,12 +467,12 @@ export default function Historial() {
                     const horasStr  = Number.isInteger(totalHoras) ? `${totalHoras}h` : `${totalHoras.toFixed(1)}h`;
                     const horario   = regs.length === 1
                       ? `${regs[0].hora_inicio.slice(0, 5)}–${regs[0].hora_fin.slice(0, 5)}`
-                      : `${regs.length} registros`;
+                      : `${regs.length} reg.`;
                     return (
-                      <td key={iso} className="text-center px-2 py-2">
-                        <span className="inline-flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg bg-amber-50 border border-amber-200">
-                          <span className="text-xs font-semibold text-amber-700">{horasStr}</span>
-                          <span className="text-[10px] text-amber-600 whitespace-nowrap">{horario}</span>
+                      <td key={iso} className="text-center px-0.5 md:px-2 py-2">
+                        <span className="inline-flex flex-col items-center gap-0.5 px-1 md:px-2 py-1 rounded-lg bg-amber-50 border border-amber-200">
+                          <span className="text-[10px] md:text-xs font-semibold text-amber-700">{horasStr}</span>
+                          <span className="text-[9px] md:text-[10px] text-amber-600 whitespace-nowrap hidden md:block">{horario}</span>
                         </span>
                       </td>
                     );
