@@ -24,7 +24,7 @@ const BASE_STYLES = `
        background:#ffffff;min-height:100vh;display:flex}
   .panel-left{background:#0A1929;width:42%;display:flex;flex-direction:column;
               align-items:center;justify-content:center;padding:3rem;min-height:100vh}
-  .panel-left img{width:200px;filter:brightness(0) invert(1);margin-bottom:2.5rem}
+  .panel-left img{width:160px;background:white;border-radius:16px;padding:14px;margin-bottom:2.5rem;display:block}
   .panel-left h1{color:white;font-size:1.4rem;font-weight:700;margin-bottom:.75rem;text-align:center}
   .panel-left p{color:rgba(255,255,255,.55);font-size:.85rem;text-align:center;line-height:1.6;max-width:240px}
   .panel-right{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem;background:#f8f9fb}
