@@ -8,9 +8,9 @@ const SECTIONS = [
     title: "Resumen de la App",
     content: `**asistencia-mi** — Control de Asistencia MI Technologies
 
-Stack: React 18 + TypeScript + Vite 5 + Tailwind 3 + shadcn/ui (frontend) · Express + Drizzle ORM + pg (backend) · PostgreSQL 15 · PM2 · Coolify.
+Stack: React 18 + TypeScript + Vite 5 + Tailwind 3 + shadcn/ui (frontend) · Express + Drizzle ORM + pg (backend) · PostgreSQL 16 · Coolify.
 
-Versión: 1.0.0
+Versión: 1.1.0
 Base de datos: calidad_mitechnologies
 Puerto por defecto: 3000 (Express sirve tanto la API como el SPA compilado)
 
@@ -197,11 +197,11 @@ USUARIOS [admin]
 
 COLABORADORES [admin para write]
   GET    /api/v1/colaboradores
-  POST   /api/v1/colaboradores         [admin]
-  PUT    /api/v1/colaboradores/:id     [admin]
-  POST   /api/v1/colaboradores/:id/baja [admin]
-  POST   /api/v1/colaboradores/:id/reactivar [admin]
-  POST   /api/v1/colaboradores/importar [admin]
+  POST   /api/v1/colaboradores              [admin]
+  PUT    /api/v1/colaboradores/:id          [admin]
+  PATCH  /api/v1/colaboradores/:id/estado   [admin] — body: { activo: false, tipo_baja, fecha_baja } | { activo: true }
+  DELETE /api/v1/colaboradores/:id          [admin]
+  POST   /api/v1/colaboradores/:id/foto     [admin] — multipart/form-data, campo "foto", guarda en uploads/ como colab_{id}.{ext}
 
 ASISTENCIA
   GET  /api/v1/asistencia/reporte      — colaboradores activos con asistencia de hoy
@@ -288,7 +288,7 @@ export default function DeveloperManual() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded font-mono">
-            asistencia-mi v1.0.0
+            asistencia-mi v1.1.0
           </span>
         </div>
         <h2 className="text-xl font-semibold mb-5">{section.title}</h2>

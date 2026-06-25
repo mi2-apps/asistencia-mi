@@ -12,10 +12,21 @@ interface ChangelogEntry {
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.1.0",
+    date: "2026-06-24",
+    title: "Mejoras en Historial, Colaboradores y Tiempo Extra",
+    highlight: true,
+    items: [
+      "Historial: tabs Asistencia / Tiempo Extra — ambas vistas en una sola pantalla, misma semana y filtros",
+      "Historial: modal de resumen al hacer clic en cualquier colaborador — datos generales + asistencia diaria de la semana",
+      "Colaboradores: edición de foto de perfil directamente desde el modal de edición",
+      "Tiempo Extra: botón «Descargar PDF» en el detalle semanal — genera reporte oficial con logo MI Technologies",
+    ],
+  },
+  {
     version: "1.0.0",
     date: "2026-06-19",
     title: "Lanzamiento inicial en MI Apps Stack",
-    highlight: true,
     items: [
       "Migración completa al stack oficial MI Apps (React 18 + TypeScript + Vite + Tailwind + Drizzle ORM)",
       "Autenticación SSO via Nextcloud — sin contraseñas locales",
@@ -77,7 +88,7 @@ export default function Changelog() {
 
 // "What's New" modal shown on first login after deploy
 export function WhatsNewModal() {
-  const STORAGE_KEY = "whats-new-seen-v1.0.0";
+  const STORAGE_KEY = "whats-new-seen-v1.1.0";
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
