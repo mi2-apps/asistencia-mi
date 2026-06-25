@@ -75,6 +75,25 @@ export default function Asistencia() {
     return lista;
   }, [reporte, deptActual, busqueda]);
 
+  const TURNO_ORDER = ["Matutino", "Vespertino", "Nocturno", "Mixto"];
+
+  const filasPorTurno = useMemo(() => {
+    const groups = new Map<string, ReporteRow[]>();
+    for (const fila of filas) {
+      const key = fila.turno?.trim() || "Sin turno";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(fila);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => {
+      const ia = TURNO_ORDER.indexOf(a);
+      const ib = TURNO_ORDER.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }, [filas]);
+
   const totalDept = deptActual ? reporte.filter((r) => r.departamento === deptActual).length : 0;
   const todosRegistrados = deptActual && filas.length === 0 && totalDept > 0;
 
@@ -193,57 +212,58 @@ export default function Asistencia() {
             </div>
           ) : (
             <>
-              {/* Móvil: tarjetas */}
-              <div className="md:hidden space-y-2">
-                {filas.map((r) => (
-                  <div key={r.colaborador_id} className="rounded-xl border border-border bg-card p-3">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm leading-tight">{r.fullname}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {[r.numero_empleado, r.puesto].filter(Boolean).join(" · ") || "—"}
-                        </p>
-                      </div>
-                      {r.estado && (
-                        <div className="flex-shrink-0">
-                          {r.estado === "Presente" ? (
-                            <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">{r.tipo_inasistencia ?? t("asistencia:absence")}</span>
-                          )}
-                        </div>
-                      )}
+              {/* Móvil: tarjetas agrupadas por turno */}
+              <div className="md:hidden space-y-4">
+                {filasPorTurno.map(([turno, rows]) => (
+                  <div key={turno}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{turno}</span>
+                      <span className="text-xs text-muted-foreground">({rows.length})</span>
+                      <div className="flex-1 h-px bg-border" />
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => registrarMutation.mutate({ persona_id: r.colaborador_id, estado: "Presente" })}
-                        className={cn(
-                          "flex-1 py-1.5 text-xs rounded-md border transition-colors",
-                          r.estado === "Presente"
-                            ? "bg-green-500 text-white border-green-500"
-                            : "border-green-500 text-green-600 hover:bg-green-50"
-                        )}
-                      >
-                        {t("asistencia:present")}
-                      </button>
-                      <button
-                        onClick={() => abrirModal(r)}
-                        className={cn(
-                          "flex-1 py-1.5 text-xs rounded-md border transition-colors",
-                          r.estado === "Inasistencia"
-                            ? "bg-red-500 text-white border-red-500"
-                            : "border-red-400 text-red-500 hover:bg-red-50"
-                        )}
-                      >
-                        {t("asistencia:absence")}
-                      </button>
+                    <div className="space-y-2">
+                      {rows.map((r) => (
+                        <div key={r.colaborador_id} className="rounded-xl border border-border bg-card p-3">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm leading-tight">{r.fullname}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {[r.numero_empleado, r.puesto].filter(Boolean).join(" · ") || "—"}
+                              </p>
+                            </div>
+                            {r.estado && (
+                              <div className="flex-shrink-0">
+                                {r.estado === "Presente" ? (
+                                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">{r.tipo_inasistencia ?? t("asistencia:absence")}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => registrarMutation.mutate({ persona_id: r.colaborador_id, estado: "Presente" })}
+                              className={cn("flex-1 py-1.5 text-xs rounded-md border transition-colors", r.estado === "Presente" ? "bg-green-500 text-white border-green-500" : "border-green-500 text-green-600 hover:bg-green-50")}
+                            >
+                              {t("asistencia:present")}
+                            </button>
+                            <button
+                              onClick={() => abrirModal(r)}
+                              className={cn("flex-1 py-1.5 text-xs rounded-md border transition-colors", r.estado === "Inasistencia" ? "bg-red-500 text-white border-red-500" : "border-red-400 text-red-500 hover:bg-red-50")}
+                            >
+                              {t("asistencia:absence")}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Desktop: tabla */}
+              {/* Desktop: tabla agrupada por turno */}
               <div className="hidden md:block overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-sm">
                   <thead>
@@ -256,54 +276,52 @@ export default function Asistencia() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filas.map((r) => (
-                      <tr key={r.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
-                        <td className="px-4 py-2">
-                          <div className="flex items-center gap-2">
-                            <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
-                            <span className="font-medium">{r.fullname}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">{r.numero_empleado ?? "—"}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{r.puesto ?? "—"}</td>
-                        <td className="px-3 py-2">
-                          {!r.estado ? (
-                            <span className="text-muted-foreground">{t("asistencia:noRecord")}</span>
-                          ) : r.estado === "Presente" ? (
-                            <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">
-                              {r.tipo_inasistencia ?? t("asistencia:absence")}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => registrarMutation.mutate({ persona_id: r.colaborador_id, estado: "Presente" })}
-                              className={cn(
-                                "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                                r.estado === "Presente"
-                                  ? "bg-green-500 text-white border-green-500"
-                                  : "border-green-500 text-green-600 hover:bg-green-50"
+                    {filasPorTurno.map(([turno, rows]) => (
+                      <>
+                        <tr key={`header-${turno}`} className="bg-muted/50 border-b border-border">
+                          <td colSpan={5} className="px-4 py-1.5">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{turno}</span>
+                            <span className="ml-2 text-xs text-muted-foreground/60">({rows.length})</span>
+                          </td>
+                        </tr>
+                        {rows.map((r) => (
+                          <tr key={r.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
+                            <td className="px-4 py-2">
+                              <div className="flex items-center gap-2">
+                                <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
+                                <span className="font-medium">{r.fullname}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground">{r.numero_empleado ?? "—"}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{r.puesto ?? "—"}</td>
+                            <td className="px-3 py-2">
+                              {!r.estado ? (
+                                <span className="text-muted-foreground">{t("asistencia:noRecord")}</span>
+                              ) : r.estado === "Presente" ? (
+                                <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">{r.tipo_inasistencia ?? t("asistencia:absence")}</span>
                               )}
-                            >
-                              {t("asistencia:present")}
-                            </button>
-                            <button
-                              onClick={() => abrirModal(r)}
-                              className={cn(
-                                "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                                r.estado === "Inasistencia"
-                                  ? "bg-red-500 text-white border-red-500"
-                                  : "border-red-400 text-red-500 hover:bg-red-50"
-                              )}
-                            >
-                              {t("asistencia:absence")}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => registrarMutation.mutate({ persona_id: r.colaborador_id, estado: "Presente" })}
+                                  className={cn("px-2.5 py-1 text-xs rounded-md border transition-colors", r.estado === "Presente" ? "bg-green-500 text-white border-green-500" : "border-green-500 text-green-600 hover:bg-green-50")}
+                                >
+                                  {t("asistencia:present")}
+                                </button>
+                                <button
+                                  onClick={() => abrirModal(r)}
+                                  className={cn("px-2.5 py-1 text-xs rounded-md border transition-colors", r.estado === "Inasistencia" ? "bg-red-500 text-white border-red-500" : "border-red-400 text-red-500 hover:bg-red-50")}
+                                >
+                                  {t("asistencia:absence")}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </>
                     ))}
                   </tbody>
                 </table>
