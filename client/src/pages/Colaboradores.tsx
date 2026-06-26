@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Camera, Search, Edit2, UserMinus } from "lucide-react";
+import { ArrowLeft, Camera, Search, Edit2, UserMinus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
@@ -53,6 +53,8 @@ export default function Colaboradores() {
   const [busqueda, setBusqueda]           = useState("");
   const [editando, setEditando]           = useState<Colaborador | null>(null);
   const [bajaTarget, setBajaTarget]       = useState<Colaborador | null>(null);
+  const [eliminarTarget, setEliminarTarget] = useState<Colaborador | null>(null);
+  const [eliminarError, setEliminarError]   = useState<string | null>(null);
   const [tipoBaja, setTipoBaja]           = useState("");
   const [fechaBaja, setFechaBaja]         = useState(new Date().toISOString().slice(0, 10));
   const [motivoBaja, setMotivoBaja]       = useState("");
@@ -134,6 +136,31 @@ export default function Colaboradores() {
     },
   });
 
+  const eliminarMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const r = await fetch(`/api/v1/colaboradores/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (r.status === 409 || r.status === 500) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.message ?? "Error al eliminar");
+      }
+      if (!r.ok && r.status !== 204) throw new Error("Error al eliminar");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["colaboradores"] });
+      setEliminarTarget(null);
+      setEliminarError(null);
+    },
+    onError: (err: Error) => {
+      const msg = err.message.includes("foreign key") || err.message.includes("violates")
+        ? "No se puede eliminar porque tiene registros de asistencia o tiempo extra asociados."
+        : err.message;
+      setEliminarError(msg);
+    },
+  });
+
   const abrirEditar = (c: Colaborador) => {
     setEditando(c);
     setFotoPreview(null);
@@ -211,6 +238,9 @@ export default function Colaboradores() {
                   </button>
                   <button onClick={() => { setBajaTarget(c); setTipoBaja(""); setFechaBaja(new Date().toISOString().slice(0, 10)); setMotivoBaja(""); }} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
                     <UserMinus size={13} />
+                  </button>
+                  <button onClick={() => { setEliminarTarget(c); setEliminarError(null); }} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
@@ -320,6 +350,29 @@ export default function Colaboradores() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Eliminar modal */}
+      {eliminarTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-sm">
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <h3 className="font-semibold text-destructive">Eliminar colaborador</h3>
+              <button onClick={() => { setEliminarTarget(null); setEliminarError(null); }} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-sm">¿Eliminar permanentemente a <span className="font-medium">{eliminarTarget.fullname}</span>?</p>
+              <p className="text-xs text-muted-foreground">Esta acción no se puede deshacer.</p>
+              {eliminarError && <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">{eliminarError}</p>}
+            </div>
+            <div className="p-4 border-t border-border flex justify-end gap-2">
+              <button onClick={() => { setEliminarTarget(null); setEliminarError(null); }} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">Cancelar</button>
+              <button onClick={() => eliminarMutation.mutate(eliminarTarget.id)} disabled={eliminarMutation.isPending} className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors">
+                {eliminarMutation.isPending ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
           </div>
         </div>
       )}
