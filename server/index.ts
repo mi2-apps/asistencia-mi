@@ -110,6 +110,8 @@ async function runMigrations() {
     await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos JSONB`);
     await client.query(`ALTER TABLE asistencia ADD COLUMN IF NOT EXISTS registrado_por VARCHAR(60)`);
     await client.query(`ALTER TABLE asistencia ADD COLUMN IF NOT EXISTS edit_count INTEGER NOT NULL DEFAULT 0`);
+    await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS dado_de_baja_por VARCHAR(60)`);
+    await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW()`);
     await client.query(`UPDATE usuarios SET role = 'admin' WHERE username = 'leonel.hernandez' AND role != 'admin'`);
     console.log("[asistencia-mi] migrations ok");
   } catch (err) {

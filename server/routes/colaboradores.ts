@@ -60,10 +60,11 @@ router.get("/", requireAuth, async (req, res, next) => {
         fecha_ingreso:   colaboradores.fecha_ingreso,
         foto_perfil:     colaboradores.foto_perfil,
         activo:          colaboradores.activo,
-        fecha_baja:      colaboradores.fecha_baja,
-        tipo_baja:       colaboradores.tipo_baja,
-        motivo_baja:     colaboradores.motivo_baja,
-        created_at:      colaboradores.created_at,
+        fecha_baja:       colaboradores.fecha_baja,
+        tipo_baja:        colaboradores.tipo_baja,
+        motivo_baja:      colaboradores.motivo_baja,
+        dado_de_baja_por: colaboradores.dado_de_baja_por,
+        created_at:       colaboradores.created_at,
         anios_en_planta: sql<number>`DATE_PART('year', AGE(CURRENT_DATE, ${colaboradores.fecha_ingreso}))::int`,
       })
       .from(colaboradores)
@@ -148,9 +149,9 @@ router.patch("/:id/estado", requireAuth, requireModulo("bajas"), async (req, res
       }
       const [row] = await db
         .update(colaboradores)
-        .set({ activo: true, fecha_baja: null, tipo_baja: null, motivo_baja: null, updated_at: new Date() })
+        .set({ activo: true, fecha_baja: null, tipo_baja: null, motivo_baja: null, dado_de_baja_por: null, updated_at: new Date() })
         .where(eq(colaboradores.id, id))
-        .returning({ id: colaboradores.id, activo: colaboradores.activo, fecha_baja: colaboradores.fecha_baja, tipo_baja: colaboradores.tipo_baja, motivo_baja: colaboradores.motivo_baja });
+        .returning({ id: colaboradores.id, activo: colaboradores.activo, fecha_baja: colaboradores.fecha_baja, tipo_baja: colaboradores.tipo_baja, motivo_baja: colaboradores.motivo_baja, dado_de_baja_por: colaboradores.dado_de_baja_por });
 
       if (!row) {
         return res.status(404).json({ success: false, code: "NOT_FOUND", message: "Colaborador no encontrado" });
@@ -164,12 +165,13 @@ router.patch("/:id/estado", requireAuth, requireModulo("bajas"), async (req, res
       return res.status(400).json({ success: false, code: "VALIDATION", message });
     }
     const { tipo_baja, fecha_baja, motivo_baja } = parseResult.data;
+    const dado_de_baja_por = (req.user as AuthUser).username;
 
     const [row] = await db
       .update(colaboradores)
-      .set({ activo: false, fecha_baja, tipo_baja, motivo_baja: motivo_baja ?? null, updated_at: new Date() })
+      .set({ activo: false, fecha_baja, tipo_baja, motivo_baja: motivo_baja ?? null, dado_de_baja_por, updated_at: new Date() })
       .where(eq(colaboradores.id, id))
-      .returning({ id: colaboradores.id, activo: colaboradores.activo, fecha_baja: colaboradores.fecha_baja, tipo_baja: colaboradores.tipo_baja, motivo_baja: colaboradores.motivo_baja });
+      .returning({ id: colaboradores.id, activo: colaboradores.activo, fecha_baja: colaboradores.fecha_baja, tipo_baja: colaboradores.tipo_baja, motivo_baja: colaboradores.motivo_baja, dado_de_baja_por: colaboradores.dado_de_baja_por });
 
     if (!row) {
       return res.status(404).json({ success: false, code: "NOT_FOUND", message: "Colaborador no encontrado" });

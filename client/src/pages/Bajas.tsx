@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { ArrowLeft, RotateCcw, FileDown } from "lucide-react";
+import { generarPDFBaja } from "@client/lib/pdfBaja";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
@@ -23,6 +24,7 @@ interface Colaborador {
   fecha_baja: string | null;
   tipo_baja: string | null;
   motivo_baja: string | null;
+  dado_de_baja_por: string | null;
 }
 
 async function fetchBajas(): Promise<{ colaboradores: Colaborador[] }> {
@@ -107,19 +109,29 @@ export default function Bajas() {
                   <div className="flex gap-2"><span className="font-medium text-foreground">{t("bajas:dateLabel")}</span>{formatFecha(c.fecha_baja)}</div>
                   <div className="flex gap-2"><span className="font-medium text-foreground">{t("bajas:seniorityLabel")}</span>{calcularAntiguedad(c.fecha_ingreso)}</div>
                   {c.numero_empleado && <div className="flex gap-2"><span className="font-medium text-foreground">{t("bajas:payrollLabel")}</span>{c.numero_empleado}</div>}
+                  {c.dado_de_baja_por && <div className="flex gap-2"><span className="font-medium text-foreground">Registrado por:</span>{c.dado_de_baja_por}</div>}
                 </div>
 
                 {c.motivo_baja && (
                   <p className="text-xs bg-muted rounded p-2 text-muted-foreground">{c.motivo_baja}</p>
                 )}
 
-                <button
-                  onClick={() => reactivarMutation.mutate(c.id)}
-                  disabled={reactivarMutation.isPending}
-                  className="flex items-center gap-1.5 text-xs text-brand-green hover:underline disabled:opacity-50"
-                >
-                  <RotateCcw size={12} /> {t("bajas:reactivate")}
-                </button>
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => reactivarMutation.mutate(c.id)}
+                    disabled={reactivarMutation.isPending}
+                    className="flex items-center gap-1.5 text-xs text-brand-green hover:underline disabled:opacity-50"
+                  >
+                    <RotateCcw size={12} /> {t("bajas:reactivate")}
+                  </button>
+                  <button
+                    onClick={() => generarPDFBaja(c)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    title="Generar PDF de baja"
+                  >
+                    <FileDown size={12} /> PDF
+                  </button>
+                </div>
               </div>
             ))}
           </div>

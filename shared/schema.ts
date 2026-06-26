@@ -54,6 +54,7 @@ export const colaboradores = pgTable(
     fecha_baja:      date("fecha_baja"),
     tipo_baja:       varchar("tipo_baja", { length: 60 }),
     motivo_baja:     text("motivo_baja"),
+    dado_de_baja_por: varchar("dado_de_baja_por", { length: 60 }),
     created_at:      timestamp("created_at").defaultNow().notNull(),
     updated_at:      timestamp("updated_at").defaultNow().notNull(),
   },
