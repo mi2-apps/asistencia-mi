@@ -10,7 +10,7 @@ const SECTIONS = [
 
 Stack: React 18 + TypeScript + Vite 5 + Tailwind 3 + shadcn/ui (frontend) · Express + Drizzle ORM + pg (backend) · PostgreSQL 16 · Coolify.
 
-Versión: 1.1.0
+Versión: 1.2.0
 Base de datos: calidad_mitechnologies
 Puerto por defecto: 3000 (Express sirve tanto la API como el SPA compilado)
 
@@ -195,17 +195,17 @@ USUARIOS [admin]
   PUT    /api/v1/usuarios/:id
   DELETE /api/v1/usuarios/:id
 
-COLABORADORES [admin para write]
-  GET    /api/v1/colaboradores
-  POST   /api/v1/colaboradores              [admin]
-  PUT    /api/v1/colaboradores/:id          [admin]
-  PATCH  /api/v1/colaboradores/:id/estado   [admin] — body: { activo: false, tipo_baja, fecha_baja } | { activo: true }
+COLABORADORES
+  GET    /api/v1/colaboradores               — [módulo:colaboradores] activos | [módulo:bajas] con ?activo=false
+  POST   /api/v1/colaboradores              [módulo:agregar_colaborador]
+  PUT    /api/v1/colaboradores/:id          [requireAuth]
+  PATCH  /api/v1/colaboradores/:id/estado   [módulo:bajas] — body: { activo: false, tipo_baja, fecha_baja } | { activo: true }
   DELETE /api/v1/colaboradores/:id          [admin]
-  POST   /api/v1/colaboradores/:id/foto     [admin] — multipart/form-data, campo "foto", guarda en uploads/ como colab_{id}.{ext}
+  POST   /api/v1/colaboradores/:id/foto     [requireAuth] — multipart/form-data, campo "foto"
 
 ASISTENCIA
-  GET  /api/v1/asistencia/reporte      — colaboradores activos con asistencia de hoy
-  GET  /api/v1/asistencia/semana       — ?inicio=YYYY-MM-DD&fin=YYYY-MM-DD
+  GET  /api/v1/asistencia/reporte      — [módulo:asistencia] colaboradores activos con asistencia de hoy
+  GET  /api/v1/asistencia/semana       — [módulo:historial] ?inicio=YYYY-MM-DD&fin=YYYY-MM-DD
   POST /api/v1/asistencia              — registrar (idempotente)
   DELETE /api/v1/asistencia/hoy        [admin] — limpiar registros de hoy
 
@@ -215,6 +215,44 @@ TIEMPO EXTRA
   GET  /api/v1/tiempo-extra            — ?departamento=X&inicio=YYYY-MM-DD&fin=YYYY-MM-DD
   POST /api/v1/tiempo-extra            — crear registro
   DELETE /api/v1/tiempo-extra/:id      [admin]`,
+  },
+  {
+    id: "permisos",
+    title: "Sistema de Permisos",
+    content: `Los permisos se almacenan en la columna permisos (JSONB) de la tabla usuarios
+como Record<string, string[]>. Los admins omiten toda verificación de módulo.
+
+MÓDULOS DISPONIBLES (clave → comportamiento)
+  asistencia          — con selección de departamentos
+  historial           — on/off (sin selección de depts)
+  colaboradores       — con selección de departamentos
+  agregar_colaborador — on/off (sin selección de depts)
+  bajas               — con selección de departamentos
+  tiempo_extra        — con selección de departamentos
+
+VALORES DE LA LISTA DE DEPARTAMENTOS
+  ["*"]              → acceso a todos los departamentos
+  ["Sorting","FFT"]  → acceso solo a esos departamentos
+  ausente / []       → sin acceso al módulo
+
+MIDDLEWARE (server/middleware/auth.ts)
+  requireModulo(modulo)
+    — Devuelve 403 si el usuario no es admin y no tiene la clave en permisos.
+
+  getAllowedDepts(user, modulo): string[] | null
+    — null    → todos los departamentos (admin o permisos["*"])
+    — []      → sin acceso (módulo no asignado o lista vacía)
+    — [...] → solo esos departamentos
+
+FRONTEND (client/src/stores/authStore.ts)
+  canAccess(modulo)    → boolean
+  allowedDepts(modulo) → string[] | null
+
+ROUTE GUARDS (client/src/main.tsx)
+  <PermGuard modulo="historial">   — redirige a /asistencia si no tiene acceso
+  <PermGuard modulo="bajas">
+  <PermGuard modulo="agregar_colaborador">
+  etc.`,
   },
   {
     id: "migrations",
@@ -288,7 +326,7 @@ export default function DeveloperManual() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded font-mono">
-            asistencia-mi v1.1.0
+            asistencia-mi v1.2.0
           </span>
         </div>
         <h2 className="text-xl font-semibold mb-5">{section.title}</h2>

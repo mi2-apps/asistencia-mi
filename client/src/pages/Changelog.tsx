@@ -12,10 +12,22 @@ interface ChangelogEntry {
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.2.0",
+    date: "2026-06-25",
+    title: "Permisos granulares, diseño móvil y mejoras en Tiempo Extra",
+    highlight: true,
+    items: [
+      "Permisos: 6 módulos individuales independientes — Asistencia, Historial, Colaboradores, Agregar Colaborador, Bajas y Tiempo Extra, cada uno con su propio acceso y selección de departamentos",
+      "Diseño responsive completo — sidebar con menú hamburguesa en móvil, vistas de tarjetas y tablas adaptadas para pantallas pequeñas",
+      "Asistencia: colaboradores agrupados por turno (Matutino / Vespertino / Nocturno / Mixto) en la vista de departamento",
+      "Tiempo Extra: historial agrupado por día de la semana (Lunes → Domingo) con sección colapsable por día para reducir scroll",
+      "Tiempo Extra: tarjetas de registro rediseñadas en móvil — información más compacta y legible sin scroll horizontal",
+    ],
+  },
+  {
     version: "1.1.0",
     date: "2026-06-24",
     title: "Mejoras en Historial, Colaboradores y Tiempo Extra",
-    highlight: true,
     items: [
       "Historial: tabs Asistencia / Tiempo Extra — ambas vistas en una sola pantalla, misma semana y filtros",
       "Historial: modal de resumen al hacer clic en cualquier colaborador — datos generales + asistencia diaria de la semana",
@@ -88,7 +100,7 @@ export default function Changelog() {
 
 // "What's New" modal shown on first login after deploy
 export function WhatsNewModal() {
-  const STORAGE_KEY = "whats-new-seen-v1.1.0";
+  const STORAGE_KEY = "whats-new-seen-v1.2.0";
   const [open, setOpen] = useState(false);
 
   useEffect(() => {

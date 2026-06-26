@@ -59,9 +59,10 @@ const SECTIONS = [
     content: [
       { heading: "¿Qué hace?", text: "Registra y consulta el tiempo extra trabajado por los colaboradores, organizado por departamento." },
       { heading: "Registrar tiempo extra", text: "1. Selecciona el departamento.\n2. Elige «Registrar Tiempo Extra».\n3. Busca al colaborador por nombre o nómina.\n4. Captura la fecha, hora de inicio, hora de fin (las horas totales se calculan automáticamente), área donde trabajó, motivo y quién autorizó.\n5. Haz clic en «Registrar Tiempo Extra»." },
-      { heading: "Historial de Tiempo Extra", text: "Dentro de cada departamento, elige «Historial de Tiempo Extra» para ver los registros agrupados por semana. Haz clic en una semana para ver el detalle de cada colaborador con todos sus datos." },
+      { heading: "Historial de Tiempo Extra", text: "Dentro de cada departamento, elige «Historial de Tiempo Extra» para ver los registros agrupados por semana. Haz clic en una semana para ver el detalle." },
+      { heading: "Vista por día", text: "Dentro del detalle de una semana, los registros están agrupados por día (Lunes → Domingo). Toca el encabezado de un día para colapsar o expandir sus registros y reducir el scroll." },
       { heading: "Buscador en el detalle", text: "Dentro del detalle de una semana, puedes filtrar por nombre o número de nómina para encontrar rápidamente un registro específico." },
-      { heading: "Descargar PDF", text: "En el detalle de una semana (cuando hay registros), aparece el botón «Descargar PDF» en la esquina superior derecha. Genera un reporte oficial en formato PDF con logo MI Technologies, datos del área, tabla de colaboradores con horas por día y líneas de firma para autorización." },
+      { heading: "Descargar PDF", text: "En el detalle de una semana (cuando hay registros), aparece el botón «Descargar PDF». Genera un reporte oficial en formato PDF con logo MI Technologies, datos del área, tabla de colaboradores con horas por día y líneas de firma para autorización." },
     ],
   },
   {
@@ -70,9 +71,10 @@ const SECTIONS = [
     content: [
       { heading: "¿Qué hace?", text: "Gestiona los usuarios del sistema (administradores y usuarios estándar). Solo visible para administradores." },
       { heading: "Crear usuario", text: "Haz clic en «Nuevo». El username se genera automáticamente como nombre.apellido (sin acentos). Si ya existe, se añade un sufijo numérico (p. ej. juan.garcia2)." },
-      { heading: "Roles", text: "«Admin» tiene acceso a todos los módulos. «Usuario» solo puede ver Asistencia e Historial." },
+      { heading: "Roles", text: "«Admin» tiene acceso completo a todos los módulos sin restricciones. «Usuario» accede solo a los módulos que el administrador le asigne." },
+      { heading: "Permisos por módulo", text: "Cada usuario tipo «Usuario» tiene permisos individuales por módulo:\n• Asistencia — registro diario (con selección de departamentos)\n• Historial — vista semanal (acceso on/off)\n• Colaboradores — catálogo activos (con selección de departamentos)\n• Agregar Colaborador — dar de alta nuevos colaboradores (acceso on/off)\n• Bajas — gestionar bajas y reactivaciones (con selección de departamentos)\n• Tiempo Extra — registro e historial (con selección de departamentos)\n\nPara asignar permisos: abre la tarjeta del usuario y haz clic en el ícono de llave (🔑)." },
       { heading: "Protección del administrador", text: "El usuario «admin» no puede ser eliminado del sistema." },
-      { heading: "Inicio de sesión", text: "Una vez desplegada la app en producción, el acceso se realiza con las credenciales de cuenta MI Global (mismo usuario y contraseña que usas en Nextcloud y correo)." },
+      { heading: "Inicio de sesión", text: "El acceso en producción se realiza con las credenciales de cuenta MI Global (mismo usuario y contraseña que usas en Nextcloud y correo)." },
     ],
   },
 ];
