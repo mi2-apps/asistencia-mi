@@ -75,6 +75,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}>
         {/* Logo / app name */}
         <div className="px-6 py-5 border-b border-white/10">
+          <img src="/mi_logo_sidebar.png" alt="MI Technologies" className="h-16 w-auto mb-3 object-contain" />
           <p className="text-xs text-white/50 uppercase tracking-widest">MI Technologies</p>
           <h1 className="text-sm font-semibold mt-0.5 leading-tight">Control de Asistencia</h1>
         </div>
