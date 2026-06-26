@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Clock, Download, History, Search, X, CheckCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Clock, Download, History, Search, X, CheckCircle } from "lucide-react";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
 import { DEPARTAMENTOS_LIST, DEPT_COLORS } from "@shared/constants";
@@ -66,10 +66,17 @@ function calcularHoras(inicio: string, fin: string): number | null {
 }
 
 const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const DIAS  = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 
 function formatFecha(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   return `${d} ${MESES[m - 1]} ${y}`;
+}
+
+function formatDiaHeader(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return `${DIAS[dt.getDay()]} ${d} ${MESES[m - 1]}`;
 }
 
 export default function TiempoExtra() {
@@ -88,6 +95,7 @@ export default function TiempoExtra() {
   const [exito, setExito]             = useState(false);
   const [semanaActual, setSemana]     = useState<SemanaItem | null>(null);
   const [busqDetalle, setBusqDetalle] = useState("");
+  const [diasColapsados, setDiasColapsados] = useState<Set<string>>(new Set());
   const qc = useQueryClient();
 
   // Stats para las tarjetas de departamentos
@@ -196,6 +204,17 @@ export default function TiempoExtra() {
     );
   }, [detalleData, busqDetalle]);
 
+  useEffect(() => { setDiasColapsados(new Set()); }, [semanaActual]);
+
+  const registrosPorDia = useMemo(() => {
+    const grupos = new Map<string, RegistroRow[]>();
+    for (const r of registrosFiltrados) {
+      if (!grupos.has(r.fecha)) grupos.set(r.fecha, []);
+      grupos.get(r.fecha)!.push(r);
+    }
+    return Array.from(grupos.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [registrosFiltrados]);
+
   const seleccionarColab = (c: ColabRow) => {
     setColabSel(c);
     setBusqueda("");
@@ -237,17 +256,29 @@ export default function TiempoExtra() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        {vista !== "departamentos" && (
-          <button onClick={irAtras} className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft size={18} />
-          </button>
-        )}
-        <h2 className="text-xl font-semibold">{titulo}</h2>
+      <div className="mb-6">
+        <div className="flex items-center gap-3">
+          {vista !== "departamentos" && (
+            <button onClick={irAtras} className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <h2 className="text-lg md:text-xl font-semibold leading-snug">{titulo}</h2>
+          {vista === "historial-detalle" && semanaActual && (detalleData?.registros?.length ?? 0) > 0 && (
+            <button
+              onClick={() => void generarPDFTiempoExtra(detalleData!.registros, semanaActual, deptActual!)}
+              className="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium transition-colors flex-shrink-0"
+            >
+              <Download size={15} />
+              Descargar PDF
+            </button>
+          )}
+        </div>
+        {/* Botón PDF en móvil — debajo del título */}
         {vista === "historial-detalle" && semanaActual && (detalleData?.registros?.length ?? 0) > 0 && (
           <button
             onClick={() => void generarPDFTiempoExtra(detalleData!.registros, semanaActual, deptActual!)}
-            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium transition-colors"
+            className="md:hidden mt-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium transition-colors"
           >
             <Download size={15} />
             Descargar PDF
@@ -490,43 +521,93 @@ export default function TiempoExtra() {
             </div>
           )}
 
-          {registrosFiltrados.map((r) => (
-            <div key={r.id} className="flex gap-4 p-4 rounded-xl border border-border bg-card">
-              <div className="flex items-start gap-3 w-52 shrink-0">
-                <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold leading-tight truncate">{r.fullname}</p>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{r.puesto ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground">{r.numero_empleado ?? "Sin nómina"}</p>
+          {registrosPorDia.map(([fecha, registros], i) => {
+            const colapsado = diasColapsados.has(fecha);
+            const toggleDia = () => setDiasColapsados(prev => {
+              const next = new Set(prev);
+              if (next.has(fecha)) next.delete(fecha); else next.add(fecha);
+              return next;
+            });
+            return (
+            <div key={fecha}>
+              {/* Separador de día — clickeable */}
+              <button
+                onClick={toggleDia}
+                className={cn("flex items-center gap-2 w-full text-left mb-3", i > 0 && "mt-5")}
+              >
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md shrink-0">
+                  <span className="text-xs font-semibold text-foreground">{formatDiaHeader(fecha)}</span>
+                  <ChevronDown size={12} className={cn("text-muted-foreground transition-transform duration-200", colapsado && "-rotate-90")} />
                 </div>
-              </div>
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {registros.length} {registros.length === 1 ? "registro" : "registros"}
+                </span>
+              </button>
 
-              <div className="w-px bg-border shrink-0" />
+              {/* Tarjetas del día */}
+              {!colapsado && <div className="space-y-3">
+                {registros.map((r) => (
+                  <div key={r.id} className="p-4 rounded-xl border border-border bg-card">
 
-              <div className="flex-1 min-w-0 space-y-1.5 text-sm">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium">{formatFecha(r.fecha)}</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span>{r.hora_inicio} → {r.hora_fin}</span>
-                  <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {r.horas_totales} hrs
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">Área:</span> {r.area}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">Motivo:</span> {r.motivo}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">Autorizado por:</span> {r.autorizado_por}
-                </p>
-                <p className="text-xs text-muted-foreground/60">
-                  Registrado por: {r.registrado_por}
-                </p>
-              </div>
+                    {/* ── Móvil ── */}
+                    <div className="md:hidden">
+                      <div className="flex items-start gap-3">
+                        <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold leading-tight">{r.fullname}</p>
+                            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full shrink-0">
+                              {r.horas_totales} hrs
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{r.puesto ?? "—"} · {r.numero_empleado ?? "Sin nómina"}</p>
+                          <p className="text-xs text-muted-foreground">{r.hora_inicio} → {r.hora_fin}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2.5 pt-2.5 border-t border-border space-y-1 text-xs">
+                        <div className="grid grid-cols-2 gap-x-3">
+                          <p><span className="font-medium text-foreground">Área:</span> <span className="text-muted-foreground">{r.area}</span></p>
+                          <p><span className="font-medium text-foreground">Autorizado:</span> <span className="text-muted-foreground">{r.autorizado_por}</span></p>
+                        </div>
+                        <p><span className="font-medium text-foreground">Motivo:</span> <span className="text-muted-foreground">{r.motivo}</span></p>
+                        <p className="text-muted-foreground/60">Registrado: {r.registrado_por}</p>
+                      </div>
+                    </div>
+
+                    {/* ── Desktop ── */}
+                    <div className="hidden md:flex gap-4">
+                      <div className="flex items-start gap-3 w-52 shrink-0">
+                        <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold leading-tight truncate">{r.fullname}</p>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{r.puesto ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground">{r.numero_empleado ?? "Sin nómina"}</p>
+                        </div>
+                      </div>
+                      <div className="w-px bg-border shrink-0" />
+                      <div className="flex-1 min-w-0 space-y-1.5 text-sm">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{formatFecha(r.fecha)}</span>
+                          <span className="text-muted-foreground">·</span>
+                          <span>{r.hora_inicio} → {r.hora_fin}</span>
+                          <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full">
+                            {r.horas_totales} hrs
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Área:</span> {r.area}</p>
+                        <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Motivo:</span> {r.motivo}</p>
+                        <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Autorizado por:</span> {r.autorizado_por}</p>
+                        <p className="text-xs text-muted-foreground/60">Registrado por: {r.registrado_por}</p>
+                      </div>
+                    </div>
+
+                  </div>
+                ))}
+              </div>}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
