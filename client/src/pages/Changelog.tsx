@@ -12,10 +12,22 @@ interface ChangelogEntry {
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.0",
+    date: "2026-06-26",
+    title: "Edición de asistencia, eliminación de colaboradores y trazabilidad",
+    highlight: true,
+    items: [
+      "Historial: botón de edición (✏) en cada día del popup de colaborador — permite corregir el estado de asistencia de cualquier día de la semana sin salir del módulo",
+      "Historial: límite de seguridad de 2 ediciones por registro — mensajes informativos progresivos (azul → amarillo → rojo) y bloqueo al alcanzar el límite",
+      "Historial: muestra el usuario que registró o editó cada día de asistencia en texto pequeño debajo del estado",
+      "Colaboradores: botón eliminar (🗑) con modal de confirmación — eliminación permanente del registro con manejo de error si tiene asistencia asociada",
+    ],
+  },
+  {
     version: "1.2.0",
     date: "2026-06-25",
     title: "Permisos granulares, diseño móvil y mejoras en Tiempo Extra",
-    highlight: true,
+    highlight: false,
     items: [
       "Permisos: 6 módulos individuales independientes — Asistencia, Historial, Colaboradores, Agregar Colaborador, Bajas y Tiempo Extra, cada uno con su propio acceso y selección de departamentos",
       "Diseño responsive completo — sidebar con menú hamburguesa en móvil, vistas de tarjetas y tablas adaptadas para pantallas pequeñas",
@@ -100,7 +112,7 @@ export default function Changelog() {
 
 // "What's New" modal shown on first login after deploy
 export function WhatsNewModal() {
-  const STORAGE_KEY = "whats-new-seen-v1.2.0";
+  const STORAGE_KEY = "whats-new-seen-v1.3.0";
   const [open, setOpen] = useState(false);
 
   useEffect(() => {

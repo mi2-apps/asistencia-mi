@@ -10,7 +10,7 @@ const SECTIONS = [
 
 Stack: React 18 + TypeScript + Vite 5 + Tailwind 3 + shadcn/ui (frontend) · Express + Drizzle ORM + pg (backend) · PostgreSQL 16 · Coolify.
 
-Versión: 1.2.0
+Versión: 1.3.0
 Base de datos: calidad_mitechnologies
 Puerto por defecto: 3000 (Express sirve tanto la API como el SPA compilado)
 
@@ -113,9 +113,10 @@ Columnas:
                      — al leer se usa INITCAP() para devolver 'Presente' | 'Inasistencia'
   tipo_inasistencia  VARCHAR(30)           — FI | FJ | PSG | PCG | Suspension | Vacaciones | IT | RET | CUM | FES
   notas              TEXT
+  edit_count         INTEGER NOT NULL DEFAULT 0  — número de ediciones aplicadas tras el registro original
   usuario_id         INTEGER → usuarios(id) ON DELETE CASCADE   (nullable)
   colaborador_id     INTEGER → colaboradores(id) ON DELETE CASCADE (nullable)
-  registrado_por     VARCHAR(60) NOT NULL  — username de quien hizo el registro
+  registrado_por     VARCHAR(60) NOT NULL  — username de quien hizo el último registro o edición
   created_at         TIMESTAMP DEFAULT NOW()
 
 Constraint XOR:
@@ -125,9 +126,15 @@ Constraint XOR:
 Índice: asistencia_fecha_idx ON fecha
 
 Comportamiento del POST (idempotente):
-  Si ya existe fila para (colaborador_id, fecha) → UPDATE.
-  Si no existe → INSERT.
+  Si ya existe fila para (colaborador_id, fecha) → UPDATE (incrementa edit_count).
+  Si no existe → INSERT (edit_count queda en 0).
   Usa SELECT ... FOR UPDATE dentro de una transacción para evitar race conditions.
+  Si edit_count >= 2 al intentar UPDATE → 403 EDIT_LIMIT (máximo 2 ediciones por registro).
+
+Límite de ediciones:
+  edit_count = 0 → registro original, se permiten 2 ediciones.
+  edit_count = 1 → primera edición, queda 1 más.
+  edit_count = 2 → bloqueado, el endpoint devuelve 403 con code: "EDIT_LIMIT".
 
 Timezone:
   PostgreSQL corre en GMT. Las fechas del día actual se calculan con:
@@ -200,7 +207,7 @@ COLABORADORES
   POST   /api/v1/colaboradores              [módulo:agregar_colaborador]
   PUT    /api/v1/colaboradores/:id          [requireAuth]
   PATCH  /api/v1/colaboradores/:id/estado   [módulo:bajas] — body: { activo: false, tipo_baja, fecha_baja } | { activo: true }
-  DELETE /api/v1/colaboradores/:id          [admin]
+  DELETE /api/v1/colaboradores/:id          [requireAuth] — eliminación permanente; 409 si tiene registros de asistencia o TE asociados
   POST   /api/v1/colaboradores/:id/foto     [requireAuth] — multipart/form-data, campo "foto"
 
 ASISTENCIA
@@ -326,7 +333,7 @@ export default function DeveloperManual() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded font-mono">
-            asistencia-mi v1.2.0
+            asistencia-mi v1.3.0
           </span>
         </div>
         <h2 className="text-xl font-semibold mb-5">{section.title}</h2>
