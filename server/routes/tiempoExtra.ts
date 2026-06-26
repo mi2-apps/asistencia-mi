@@ -2,7 +2,7 @@ import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db } from "../db.js";
 import { tiempoExtra } from "../../shared/schema.js";
-import { tiempoExtraSchema } from "../../shared/validators.js";
+import { tiempoExtraSchema, tiempoExtraUpdateSchema } from "../../shared/validators.js";
 import { requireAuth, requireModulo, getAllowedDepts, validateBody } from "../middleware/auth.js";
 import type { AuthUser } from "../middleware/auth.js";
 
@@ -157,6 +157,34 @@ router.post("/", requireAuth, validateBody(tiempoExtraSchema), async (req, res, 
       .returning();
 
     res.status(201).json({ success: true, registro: row });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/v1/tiempo-extra/:id — editar registro
+router.put("/:id", requireAuth, requireModulo("tiempo_extra"), validateBody(tiempoExtraUpdateSchema), async (req, res, next) => {
+  try {
+    const id   = Number(req.params.id);
+    const data = tiempoExtraUpdateSchema.parse(req.body);
+    if (!id) return res.status(400).json({ success: false, message: "ID inválido" });
+
+    const rows = await db.execute(sql`
+      UPDATE tiempo_extra
+      SET fecha          = ${data.fecha}::date,
+          hora_inicio    = ${data.hora_inicio},
+          hora_fin       = ${data.hora_fin},
+          horas_totales  = ${String(data.horas_totales)},
+          area           = ${data.area},
+          motivo         = ${data.motivo},
+          autorizado_por = ${data.autorizado_por}
+      WHERE id = ${id}
+      RETURNING id
+    `);
+    if ((rows.rows as { id: number }[]).length === 0) {
+      return res.status(404).json({ success: false, message: "Registro no encontrado" });
+    }
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }

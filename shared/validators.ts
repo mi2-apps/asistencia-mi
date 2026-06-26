@@ -69,6 +69,9 @@ export const tiempoExtraSchema = z.object({
 
 export type TiempoExtraInput = z.infer<typeof tiempoExtraSchema>;
 
+export const tiempoExtraUpdateSchema = tiempoExtraSchema.omit({ colaborador_id: true });
+export type TiempoExtraUpdateInput = z.infer<typeof tiempoExtraUpdateSchema>;
+
 export type LoginInput          = z.infer<typeof loginSchema>;
 export type UsuarioCreateInput  = z.infer<typeof usuarioCreateSchema>;
 export type UsuarioUpdateInput  = z.infer<typeof usuarioUpdateSchema>;

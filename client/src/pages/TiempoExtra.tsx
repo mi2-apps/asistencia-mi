@@ -2,12 +2,12 @@ import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, ChevronDown, Clock, Download, History, Search, X, CheckCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Clock, Download, Edit2, History, Search, Trash2, X, CheckCircle } from "lucide-react";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
 import { DEPARTAMENTOS_LIST, DEPT_COLORS } from "@shared/constants";
 import { useAuthStore } from "@client/stores/authStore";
-import { tiempoExtraSchema, type TiempoExtraInput } from "@shared/validators";
+import { tiempoExtraSchema, tiempoExtraUpdateSchema, type TiempoExtraInput, type TiempoExtraUpdateInput } from "@shared/validators";
 import { cn, toLocalISO } from "@client/lib/utils";
 import { generarPDFTiempoExtra } from "@client/lib/pdfTiempoExtra";
 
@@ -96,6 +96,7 @@ export default function TiempoExtra() {
   const [semanaActual, setSemana]     = useState<SemanaItem | null>(null);
   const [busqDetalle, setBusqDetalle] = useState("");
   const [diasColapsados, setDiasColapsados] = useState<Set<string>>(new Set());
+  const [editandoId, setEditandoId] = useState<number | null>(null);
   const qc = useQueryClient();
 
   // Stats para las tarjetas de departamentos
@@ -157,6 +158,57 @@ export default function TiempoExtra() {
     const h = calcularHoras(horaInicio, horaFin);
     if (h !== null) form.setValue("horas_totales", h);
   }, [horaInicio, horaFin, form]);
+
+  const editForm = useForm<TiempoExtraUpdateInput>({ resolver: zodResolver(tiempoExtraUpdateSchema) });
+  const editHoraInicio = editForm.watch("hora_inicio");
+  const editHoraFin    = editForm.watch("hora_fin");
+
+  useEffect(() => {
+    const h = calcularHoras(editHoraInicio, editHoraFin);
+    if (h !== null) editForm.setValue("horas_totales", h);
+  }, [editHoraInicio, editHoraFin, editForm]);
+
+  const editMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: TiempoExtraUpdateInput }) => {
+      const r = await fetch(`/api/v1/tiempo-extra/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message ?? "Error al guardar"); }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tiempo-extra-detalle"] });
+      qc.invalidateQueries({ queryKey: ["tiempo-extra-stats"] });
+      setEditandoId(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const r = await fetch(`/api/v1/tiempo-extra/${id}`, { method: "DELETE", credentials: "include" });
+      if (!r.ok && r.status !== 204) { const e = await r.json(); throw new Error(e.message ?? "Error al eliminar"); }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tiempo-extra-detalle"] });
+      qc.invalidateQueries({ queryKey: ["tiempo-extra-stats"] });
+      qc.invalidateQueries({ queryKey: ["tiempo-extra-semanas"] });
+    },
+  });
+
+  const abrirEditar = (r: RegistroRow) => {
+    setEditandoId(r.id);
+    editForm.reset({
+      fecha:          r.fecha,
+      hora_inicio:    r.hora_inicio,
+      hora_fin:       r.hora_fin,
+      horas_totales:  Number(r.horas_totales),
+      area:           r.area,
+      motivo:         r.motivo,
+      autorizado_por: r.autorizado_por,
+    });
+  };
 
   const mutation = useMutation({
     mutationFn: async (data: TiempoExtraInput) => {
@@ -548,59 +600,128 @@ export default function TiempoExtra() {
               {/* Tarjetas del día */}
               {!colapsado && <div className="space-y-3">
                 {registros.map((r) => (
-                  <div key={r.id} className="p-4 rounded-xl border border-border bg-card">
+                  <div key={r.id} className="relative p-4 rounded-xl border border-border bg-card">
 
-                    {/* ── Móvil ── */}
-                    <div className="md:hidden">
-                      <div className="flex items-start gap-3">
-                        <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-semibold leading-tight">{r.fullname}</p>
-                            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full shrink-0">
-                              {r.horas_totales} hrs
-                            </span>
+                    {/* Botones de acción (siempre top-right) */}
+                    {editandoId !== r.id && (
+                      <div className="absolute top-3 right-3 flex gap-0.5">
+                        <button
+                          onClick={() => abrirEditar(r)}
+                          className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          title="Editar"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          onClick={() => { if (confirm("¿Eliminar este registro de tiempo extra?")) deleteMutation.mutate(r.id); }}
+                          className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ── Formulario de edición inline ── */}
+                    {editandoId === r.id ? (
+                      <form onSubmit={editForm.handleSubmit((d) => editMutation.mutate({ id: r.id, data: d }))} className="space-y-3">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
+                          <p className="text-sm font-semibold">{r.fullname}</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="col-span-1">
+                            <label className="text-xs font-medium block mb-1">Fecha</label>
+                            <input type="date" {...editForm.register("fecha")} className={inputCls} />
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">{r.puesto ?? "—"} · {r.numero_empleado ?? "Sin nómina"}</p>
-                          <p className="text-xs text-muted-foreground">{r.hora_inicio} → {r.hora_fin}</p>
+                          <div>
+                            <label className="text-xs font-medium block mb-1">Inicio</label>
+                            <input type="time" {...editForm.register("hora_inicio")} className={inputCls} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium block mb-1">Fin</label>
+                            <input type="time" {...editForm.register("hora_fin")} className={inputCls} />
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-2.5 pt-2.5 border-t border-border space-y-1 text-xs">
-                        <div className="grid grid-cols-2 gap-x-3">
-                          <p><span className="font-medium text-foreground">Área:</span> <span className="text-muted-foreground">{r.area}</span></p>
-                          <p><span className="font-medium text-foreground">Autorizado:</span> <span className="text-muted-foreground">{r.autorizado_por}</span></p>
+                        <div>
+                          <label className="text-xs font-medium block mb-1">Área</label>
+                          <input type="text" {...editForm.register("area")} className={inputCls} />
                         </div>
-                        <p><span className="font-medium text-foreground">Motivo:</span> <span className="text-muted-foreground">{r.motivo}</span></p>
-                        <p className="text-muted-foreground/60">Registrado: {r.registrado_por}</p>
-                      </div>
-                    </div>
+                        <div>
+                          <label className="text-xs font-medium block mb-1">Motivo</label>
+                          <textarea {...editForm.register("motivo")} rows={2} className={cn(inputCls, "resize-none")} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium block mb-1">Autorizado por</label>
+                          <input type="text" {...editForm.register("autorizado_por")} className={inputCls} />
+                        </div>
+                        {editMutation.error && (
+                          <p className="text-xs text-destructive">{(editMutation.error as Error).message}</p>
+                        )}
+                        <div className="flex gap-2 pt-1">
+                          <button type="button" onClick={() => setEditandoId(null)} className="px-4 py-1.5 text-sm rounded-md border border-border hover:bg-muted transition-colors">
+                            Cancelar
+                          </button>
+                          <button type="submit" disabled={editMutation.isPending} className="px-4 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                            {editMutation.isPending ? "Guardando..." : "Guardar"}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        {/* ── Móvil ── */}
+                        <div className="md:hidden pr-14">
+                          <div className="flex items-start gap-3">
+                            <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm font-semibold leading-tight">{r.fullname}</p>
+                                <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full shrink-0">
+                                  {r.horas_totales} hrs
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{r.puesto ?? "—"} · {r.numero_empleado ?? "Sin nómina"}</p>
+                              <p className="text-xs text-muted-foreground">{r.hora_inicio} → {r.hora_fin}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2.5 pt-2.5 border-t border-border space-y-1 text-xs">
+                            <div className="grid grid-cols-2 gap-x-3">
+                              <p><span className="font-medium text-foreground">Área:</span> <span className="text-muted-foreground">{r.area}</span></p>
+                              <p><span className="font-medium text-foreground">Autorizado:</span> <span className="text-muted-foreground">{r.autorizado_por}</span></p>
+                            </div>
+                            <p><span className="font-medium text-foreground">Motivo:</span> <span className="text-muted-foreground">{r.motivo}</span></p>
+                            <p className="text-muted-foreground/60">Registrado: {r.registrado_por}</p>
+                          </div>
+                        </div>
 
-                    {/* ── Desktop ── */}
-                    <div className="hidden md:flex gap-4">
-                      <div className="flex items-start gap-3 w-52 shrink-0">
-                        <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold leading-tight truncate">{r.fullname}</p>
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">{r.puesto ?? "—"}</p>
-                          <p className="text-xs text-muted-foreground">{r.numero_empleado ?? "Sin nómina"}</p>
+                        {/* ── Desktop ── */}
+                        <div className="hidden md:flex gap-4 pr-16">
+                          <div className="flex items-start gap-3 w-52 shrink-0">
+                            <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold leading-tight truncate">{r.fullname}</p>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">{r.puesto ?? "—"}</p>
+                              <p className="text-xs text-muted-foreground">{r.numero_empleado ?? "Sin nómina"}</p>
+                            </div>
+                          </div>
+                          <div className="w-px bg-border shrink-0" />
+                          <div className="flex-1 min-w-0 space-y-1.5 text-sm">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium">{formatFecha(r.fecha)}</span>
+                              <span className="text-muted-foreground">·</span>
+                              <span>{r.hora_inicio} → {r.hora_fin}</span>
+                              <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full">
+                                {r.horas_totales} hrs
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Área:</span> {r.area}</p>
+                            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Motivo:</span> {r.motivo}</p>
+                            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Autorizado por:</span> {r.autorizado_por}</p>
+                            <p className="text-xs text-muted-foreground/60">Registrado por: {r.registrado_por}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="w-px bg-border shrink-0" />
-                      <div className="flex-1 min-w-0 space-y-1.5 text-sm">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">{formatFecha(r.fecha)}</span>
-                          <span className="text-muted-foreground">·</span>
-                          <span>{r.hora_inicio} → {r.hora_fin}</span>
-                          <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full">
-                            {r.horas_totales} hrs
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Área:</span> {r.area}</p>
-                        <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Motivo:</span> {r.motivo}</p>
-                        <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Autorizado por:</span> {r.autorizado_por}</p>
-                        <p className="text-xs text-muted-foreground/60">Registrado por: {r.registrado_por}</p>
-                      </div>
-                    </div>
+                      </>
+                    )}
 
                   </div>
                 ))}
