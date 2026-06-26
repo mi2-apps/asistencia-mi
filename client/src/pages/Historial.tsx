@@ -419,7 +419,7 @@ export default function Historial() {
           <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-2 md:px-4 py-3 font-medium text-muted-foreground w-[130px] md:w-48">{t("historial:employee")}</th>
+                <th className="text-left px-2 md:px-4 py-3 font-medium text-muted-foreground w-[160px] md:w-72">{t("historial:employee")}</th>
                 {dias.map((d) => (
                   <th key={d.toISOString()} className="text-center py-3 font-medium text-muted-foreground">
                     <span className="block text-[10px] md:text-xs uppercase">
@@ -447,7 +447,7 @@ export default function Historial() {
                     <div className="flex items-center gap-1.5">
                       <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" className="flex-shrink-0" />
                       <div className="min-w-0">
-                        <p className="font-medium leading-tight truncate text-[11px] md:text-sm">{info.fullname}</p>
+                        <p className="font-medium leading-tight text-[11px] md:text-sm">{info.fullname}</p>
                         <p className="text-[10px] md:text-xs text-muted-foreground truncate hidden md:block">{info.puesto}</p>
                       </div>
                     </div>
@@ -482,7 +482,7 @@ export default function Historial() {
           <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-2 md:px-4 py-3 font-medium text-muted-foreground w-[130px] md:w-48">{t("historial:employee")}</th>
+                <th className="text-left px-2 md:px-4 py-3 font-medium text-muted-foreground w-[160px] md:w-72">{t("historial:employee")}</th>
                 {diasTE.map((d) => (
                   <th key={d.toISOString()} className="text-center py-3 font-medium text-muted-foreground">
                     <span className="block text-[10px] md:text-xs uppercase">
@@ -513,7 +513,7 @@ export default function Historial() {
                     <div className="flex items-center gap-1.5">
                       <Avatar nombre={info.nombre} apellido={info.apellido} fotoPerfil={info.foto_perfil} size="sm" className="flex-shrink-0" />
                       <div className="min-w-0">
-                        <p className="font-medium leading-tight truncate text-[11px] md:text-sm">{info.fullname}</p>
+                        <p className="font-medium leading-tight text-[11px] md:text-sm">{info.fullname}</p>
                         <p className="text-[10px] md:text-xs text-muted-foreground truncate hidden md:block">{info.puesto}</p>
                       </div>
                     </div>
