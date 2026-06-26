@@ -76,6 +76,8 @@ router.get("/semana", requireAuth, requireModulo("historial"), async (req, res, 
           INITCAP(a.estado) AS estado,
           a.tipo_inasistencia,
           a.notas,
+          a.edit_count,
+          a.registrado_por,
           a.created_at    AS hora
         FROM colaboradores c
         LEFT JOIN asistencia a
@@ -107,15 +109,24 @@ router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, n
     await client.query("BEGIN");
 
     const existe = await client.query(
-      `SELECT id FROM asistencia WHERE ${col} = $1 AND fecha = $2 FOR UPDATE`,
+      `SELECT id, edit_count FROM asistencia WHERE ${col} = $1 AND fecha = $2 FOR UPDATE`,
       [data.persona_id, data.fecha]
     );
 
     let row;
     if (existe.rows.length > 0) {
+      const editCount = existe.rows[0].edit_count ?? 0;
+      if (editCount >= 2) {
+        await client.query("ROLLBACK");
+        return res.status(403).json({
+          success: false,
+          code: "EDIT_LIMIT",
+          message: "Este registro ya alcanzó el límite de 2 ediciones.",
+        });
+      }
       const r = await client.query(
         `UPDATE asistencia
-            SET estado=$1, tipo_inasistencia=$2, notas=$3, registrado_por=$4
+            SET estado=$1, tipo_inasistencia=$2, notas=$3, registrado_por=$4, edit_count=edit_count+1
           WHERE id=$5
          RETURNING *`,
         [estadoDB, data.tipo_inasistencia ?? null, data.notas ?? null, username, existe.rows[0].id]

@@ -76,6 +76,7 @@ export const asistencia = pgTable(
     tipo_inasistencia: varchar("tipo_inasistencia", { length: 30 }),
     notas:             text("notas"),
     registrado_por:    varchar("registrado_por", { length: 60 }),
+    edit_count:        integer("edit_count").default(0).notNull(),
     usuario_id:        integer("usuario_id").references(() => usuarios.id, { onDelete: "cascade" }),
     colaborador_id:    integer("colaborador_id").references(() => colaboradores.id, { onDelete: "cascade" }),
     created_at:        timestamp("created_at").defaultNow().notNull(),

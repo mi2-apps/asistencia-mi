@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Search, X, Edit2 } from "lucide-react";
 import { cn, formatFecha, toLocalISO } from "@client/lib/utils";
 import { Avatar } from "@client/components/ui/Avatar";
 import { TIPOS_INASISTENCIA, DEPARTAMENTOS_LIST } from "@shared/constants";
 import { useTranslation } from "react-i18next";
+import { useAuthStore } from "@client/stores/authStore";
 
 interface RegistroSemana {
   colaborador_id: number;
@@ -20,6 +21,8 @@ interface RegistroSemana {
   estado: string | null;
   tipo_inasistencia: string | null;
   notas: string | null;
+  edit_count: number | null;
+  registrado_por: string | null;
 }
 
 interface RegistroTE {
@@ -79,6 +82,68 @@ export default function Historial() {
   } | null>(null);
 
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const qc = useQueryClient();
+
+  const [editandoDia, setEditandoDia]   = useState<{ colaborador_id: number; fecha: string } | null>(null);
+  const [editEstado, setEditEstado]     = useState<"Presente" | "Inasistencia">("Presente");
+  const [editTipo, setEditTipo]         = useState("");
+  const [editNotas, setEditNotas]       = useState("");
+
+  const editarAsistenciaMutation = useMutation({
+    mutationFn: async (vars: {
+      colaborador_id: number;
+      fecha: string;
+      estado: "Presente" | "Inasistencia";
+      tipo_inasistencia?: string;
+      notas?: string;
+    }) => {
+      const r = await fetch("/api/v1/asistencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          persona_tipo: "colaborador",
+          persona_id: vars.colaborador_id,
+          estado: vars.estado,
+          tipo_inasistencia: vars.tipo_inasistencia || undefined,
+          notas: vars.notas || undefined,
+          fecha: vars.fecha,
+        }),
+      });
+      if (!r.ok) throw new Error("Error al guardar");
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["historial"] });
+      setColabModal(prev => {
+        if (!prev) return prev;
+        const newDias = new Map(prev.dias);
+        const existing = prev.dias.get(vars.fecha);
+        newDias.set(vars.fecha, {
+          ...(existing ?? {
+            colaborador_id: vars.colaborador_id,
+            nombre: prev.info.nombre,
+            apellido: prev.info.apellido,
+            fullname: prev.info.fullname,
+            numero_empleado: prev.info.numero_empleado,
+            puesto: prev.info.puesto,
+            departamento: prev.info.departamento,
+            turno: prev.info.turno ?? null,
+            foto_perfil: prev.info.foto_perfil,
+            hora: null,
+          }),
+          fecha: vars.fecha,
+          estado: vars.estado,
+          tipo_inasistencia: vars.tipo_inasistencia ?? null,
+          notas: vars.notas ?? null,
+          edit_count: (existing?.edit_count ?? 0) + 1,
+          registrado_por: user?.username ?? null,
+        } as RegistroSemana);
+        return { ...prev, dias: newDias };
+      });
+      setEditandoDia(null);
+    },
+  });
 
   const lunes   = getMondayOfWeek(offset);
   const sabado  = new Date(lunes); sabado.setDate(lunes.getDate() + 5);
@@ -488,7 +553,7 @@ export default function Historial() {
       {colabModal && (
         <div
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setColabModal(null)}
+          onClick={() => { setColabModal(null); setEditandoDia(null); }}
         >
           <div
             className="bg-card rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
@@ -522,7 +587,7 @@ export default function Historial() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setColabModal(null)}
+                  onClick={() => { setColabModal(null); setEditandoDia(null); }}
                   className="flex-shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   <X size={18} />
@@ -539,25 +604,134 @@ export default function Historial() {
                 {dias.map(d => {
                   const iso = toISO(d);
                   const reg = colabModal.dias.get(iso);
+                  const isEditing = editandoDia?.fecha === iso && editandoDia?.colaborador_id === colabModal.info.colaborador_id;
                   return (
-                    <div key={iso} className="flex items-center gap-3 py-2.5 border-b border-border/40 last:border-0">
-                      <span className="text-sm text-muted-foreground w-28 shrink-0 capitalize">
-                        {d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })}
-                      </span>
-                      <div className="flex-1 flex items-center gap-2 flex-wrap">
-                        {!reg ? (
-                          <span className="text-xs text-muted-foreground">Sin registro</span>
-                        ) : reg.estado === "Presente" ? (
-                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Presente ✓</span>
-                        ) : (
+                    <div key={iso} className="py-2.5 border-b border-border/40 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-muted-foreground w-28 shrink-0 capitalize">
+                          {d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })}
+                        </span>
+                        {!isEditing && (
                           <>
-                            <span className={cn("inline-block px-2.5 py-0.5 rounded-full text-xs font-medium", TIPO_COLORS[reg.tipo_inasistencia ?? "FI"] ?? "bg-gray-100 text-gray-600")}>
-                              {TIPOS_INASISTENCIA.find(ti => ti.code === reg.tipo_inasistencia)?.label ?? reg.tipo_inasistencia ?? "Inasistencia"}
-                            </span>
-                            {reg.notas && <span className="text-xs text-muted-foreground truncate">{reg.notas}</span>}
+                            <div className="flex-1 flex flex-col gap-0.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {!reg ? (
+                                  <span className="text-xs text-muted-foreground">Sin registro</span>
+                                ) : reg.estado === "Presente" ? (
+                                  <span className="inline-block px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Presente ✓</span>
+                                ) : (
+                                  <>
+                                    <span className={cn("inline-block px-2.5 py-0.5 rounded-full text-xs font-medium", TIPO_COLORS[reg.tipo_inasistencia ?? "FI"] ?? "bg-gray-100 text-gray-600")}>
+                                      {TIPOS_INASISTENCIA.find(ti => ti.code === reg.tipo_inasistencia)?.label ?? reg.tipo_inasistencia ?? "Inasistencia"}
+                                    </span>
+                                    {reg.notas && <span className="text-xs text-muted-foreground truncate">{reg.notas}</span>}
+                                  </>
+                                )}
+                              </div>
+                              {reg?.registrado_por && (
+                                <span className="text-[10px] text-muted-foreground/60">por {reg.registrado_por}</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => {
+                                setEditandoDia({ colaborador_id: colabModal.info.colaborador_id, fecha: iso });
+                                setEditEstado((reg?.estado as "Presente" | "Inasistencia") ?? "Presente");
+                                setEditTipo(reg?.tipo_inasistencia ?? "");
+                                setEditNotas(reg?.notas ?? "");
+                              }}
+                              className="flex-shrink-0 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <Edit2 size={12} />
+                            </button>
                           </>
                         )}
                       </div>
+                      {isEditing && (
+                        <div className="mt-2 space-y-2">
+                          {/* Mensaje de límite de ediciones */}
+                          {(() => {
+                            const count = reg?.edit_count ?? 0;
+                            if (count >= 2) return (
+                              <div className="rounded-md px-3 py-2 bg-destructive/10 text-destructive text-xs">
+                                Este registro ya fue editado 2 veces y no puede modificarse más.
+                              </div>
+                            );
+                            if (count === 1) return (
+                              <div className="rounded-md px-3 py-2 bg-amber-50 text-amber-700 text-xs">
+                                ⚠ Última edición disponible — después de guardar no podrá modificarse.
+                              </div>
+                            );
+                            return (
+                              <div className="rounded-md px-3 py-2 bg-blue-50 text-blue-700 text-xs">
+                                Edición 1 de 2 permitidas. Tendrás 1 más después de esta.
+                              </div>
+                            );
+                          })()}
+                          {(reg?.edit_count ?? 0) >= 2 ? (
+                            <div className="flex justify-end">
+                              <button onClick={() => setEditandoDia(null)} className="px-3 py-1 text-xs rounded-md border border-border hover:bg-muted transition-colors">
+                                Cerrar
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setEditEstado("Presente")}
+                                  className={cn("flex-1 py-1 text-xs rounded-md border transition-colors", editEstado === "Presente" ? "bg-green-500 text-white border-green-500" : "border-green-500 text-green-600 hover:bg-green-50")}
+                                >
+                                  Presente
+                                </button>
+                                <button
+                                  onClick={() => setEditEstado("Inasistencia")}
+                                  className={cn("flex-1 py-1 text-xs rounded-md border transition-colors", editEstado === "Inasistencia" ? "bg-red-500 text-white border-red-500" : "border-red-400 text-red-500 hover:bg-red-50")}
+                                >
+                                  Inasistencia
+                                </button>
+                              </div>
+                              {editEstado === "Inasistencia" && (
+                                <div className="grid grid-cols-3 gap-1">
+                                  {TIPOS_INASISTENCIA.map((ti) => (
+                                    <button
+                                      key={ti.code}
+                                      onClick={() => setEditTipo(ti.code)}
+                                      className={cn("px-2 py-1 text-[10px] rounded-md border text-left transition-colors", editTipo === ti.code ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted")}
+                                    >
+                                      <span className="font-bold">{ti.code}</span>
+                                      <span className="block opacity-70 truncate">{ti.label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              <textarea
+                                value={editNotas}
+                                onChange={(e) => setEditNotas(e.target.value)}
+                                rows={1}
+                                placeholder="Notas (opcional)"
+                                className="w-full border border-input rounded-md px-2 py-1 text-xs bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <button onClick={() => setEditandoDia(null)} className="px-3 py-1 text-xs rounded-md border border-border hover:bg-muted transition-colors">
+                                  Cancelar
+                                </button>
+                                <button
+                                  onClick={() => editarAsistenciaMutation.mutate({
+                                    colaborador_id: colabModal.info.colaborador_id,
+                                    fecha: iso,
+                                    estado: editEstado,
+                                    tipo_inasistencia: editEstado === "Inasistencia" ? editTipo : undefined,
+                                    notas: editNotas || undefined,
+                                  })}
+                                  disabled={(editEstado === "Inasistencia" && !editTipo) || editarAsistenciaMutation.isPending}
+                                  className="px-3 py-1 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                                >
+                                  {editarAsistenciaMutation.isPending ? "Guardando..." : "Guardar"}
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
