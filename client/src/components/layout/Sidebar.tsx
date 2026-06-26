@@ -19,16 +19,16 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@client/components/ui/LanguageSwitcher";
 
 const NAV_ITEMS = [
-  { href: "/asistencia",          tKey: "nav:asistencia",    icon: ClipboardCheck, modulo: "asistencia"    },
-  { href: "/historial",           tKey: "nav:historial",     icon: History,        modulo: "asistencia"    },
-  { href: "/usuarios",            tKey: "nav:usuarios",      icon: Users,          modulo: "admin"         },
-  { href: "/colaboradores",       tKey: "nav:colaboradores", icon: UserSquare2,    modulo: "colaboradores" },
-  { href: "/agregar-colaborador", tKey: "nav:addEmployee",   icon: UserPlus,       modulo: "colaboradores" },
-  { href: "/bajas",               tKey: "nav:bajas",         icon: UserMinus,      modulo: "colaboradores" },
-  { href: "/tiempo-extra",        tKey: "nav:overtime",      icon: Timer,          modulo: "tiempo_extra"  },
-  { href: "/changelog",           tKey: "nav:whatsNew",      icon: Sparkles,       modulo: null            },
-  { href: "/manual",              tKey: "nav:manual",        icon: BookOpen,       modulo: null            },
-  { href: "/developer-manual",    tKey: "nav:devManual",     icon: FileCode,       modulo: "admin"         },
+  { href: "/asistencia",          tKey: "nav:asistencia",    icon: ClipboardCheck, modulo: "asistencia"          },
+  { href: "/historial",           tKey: "nav:historial",     icon: History,        modulo: "historial"           },
+  { href: "/usuarios",            tKey: "nav:usuarios",      icon: Users,          modulo: "admin"               },
+  { href: "/colaboradores",       tKey: "nav:colaboradores", icon: UserSquare2,    modulo: "colaboradores"       },
+  { href: "/agregar-colaborador", tKey: "nav:addEmployee",   icon: UserPlus,       modulo: "agregar_colaborador" },
+  { href: "/bajas",               tKey: "nav:bajas",         icon: UserMinus,      modulo: "bajas"               },
+  { href: "/tiempo-extra",        tKey: "nav:overtime",      icon: Timer,          modulo: "tiempo_extra"        },
+  { href: "/changelog",           tKey: "nav:whatsNew",      icon: Sparkles,       modulo: null                  },
+  { href: "/manual",              tKey: "nav:manual",        icon: BookOpen,       modulo: null                  },
+  { href: "/developer-manual",    tKey: "nav:devManual",     icon: FileCode,       modulo: "admin"               },
 ] as const;
 
 interface SidebarProps {

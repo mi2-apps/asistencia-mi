@@ -29,9 +29,12 @@ interface Usuario {
 }
 
 const MODULOS = [
-  { key: "asistencia",    labelKey: "usuarios:moduleAsistencia" },
-  { key: "colaboradores", labelKey: "usuarios:moduleColaboradores" },
-  { key: "tiempo_extra",  labelKey: "usuarios:moduleTiempoExtra" },
+  { key: "asistencia",          label: "Asistencia",          hasDepts: true  },
+  { key: "historial",           label: "Historial",           hasDepts: false },
+  { key: "colaboradores",       label: "Colaboradores",       hasDepts: true  },
+  { key: "agregar_colaborador", label: "Agregar Colaborador", hasDepts: false },
+  { key: "bajas",               label: "Bajas",               hasDepts: true  },
+  { key: "tiempo_extra",        label: "Tiempo Extra",        hasDepts: true  },
 ] as const;
 
 const inputCls = "w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring h-10";
@@ -171,6 +174,8 @@ export default function Usuarios() {
   if (isLoading) return <div className="p-8 text-muted-foreground text-sm">{t("loading")}</div>;
 
   if (mode === "permisos" && permTarget) {
+    const modulosConDepts = MODULOS.filter((m) => m.hasDepts && m.key in permisos);
+
     return (
       <div className="p-6 max-w-2xl">
         <div className="flex items-center gap-3 mb-5">
@@ -178,63 +183,79 @@ export default function Usuarios() {
           <h2 className="text-xl font-semibold">{t("usuarios:permissionsTitle")} — <span className="font-mono text-base">{permTarget.username}</span></h2>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-5">
-          {t("usuarios:permissionsDesc")}
-        </p>
-
-        <div className="space-y-5">
-          {MODULOS.map(({ key, labelKey }) => {
-            const enabled = key in permisos;
-            const depts   = permisos[key] ?? [];
-            const todos   = depts.includes("*");
-
-            return (
-              <div key={key} className="border border-border rounded-xl overflow-hidden">
-                {/* Header del módulo */}
-                <label className="flex items-center justify-between px-4 py-3 bg-muted/40 cursor-pointer select-none">
-                  <span className="font-medium text-sm">{t(labelKey)}</span>
+        {/* Sección: Módulos */}
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Módulos</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {MODULOS.map(({ key, label }) => {
+              const enabled = key in permisos;
+              return (
+                <label
+                  key={key}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer select-none transition-colors ${
+                    enabled
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={enabled}
                     onChange={(e) => toggleModulo(key, e.target.checked)}
-                    className="w-4 h-4 accent-primary"
+                    className="w-4 h-4 accent-primary flex-shrink-0"
                   />
+                  <span className="text-sm font-medium leading-tight">{label}</span>
                 </label>
-
-                {/* Departamentos (solo si módulo activo) */}
-                {enabled && (
-                  <div className="px-4 py-3 space-y-3">
-                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={todos}
-                        onChange={(e) => toggleTodos(key, e.target.checked)}
-                        className="w-4 h-4 accent-primary"
-                      />
-                      {t("usuarios:allDepts")}
-                    </label>
-
-                    {!todos && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 pl-1 max-h-48 overflow-y-auto">
-                        {DEPARTAMENTOS_LIST.map((dept) => (
-                          <label key={dept} className="flex items-center gap-1.5 text-xs cursor-pointer hover:text-foreground text-muted-foreground py-0.5">
-                            <input
-                              type="checkbox"
-                              checked={depts.includes(dept)}
-                              onChange={(e) => toggleDept(key, dept, e.target.checked)}
-                              className="w-3.5 h-3.5 accent-primary flex-shrink-0"
-                            />
-                            <span className="truncate">{dept}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
+
+        {/* Sección: Departamentos — solo para módulos activos que tienen tarjetas de depts */}
+        {modulosConDepts.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Departamentos</p>
+            <div className="space-y-4">
+              {modulosConDepts.map(({ key, label }) => {
+                const depts = permisos[key] ?? [];
+                const todos = depts.includes("*");
+                return (
+                  <div key={key} className="border border-border rounded-xl overflow-hidden">
+                    <div className="px-4 py-2.5 bg-muted/40 border-b border-border">
+                      <span className="text-sm font-medium">{label}</span>
+                    </div>
+                    <div className="px-4 py-3 space-y-2.5">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={todos}
+                          onChange={(e) => toggleTodos(key, e.target.checked)}
+                          className="w-4 h-4 accent-primary"
+                        />
+                        <span className="font-medium">{t("usuarios:allDepts")}</span>
+                      </label>
+                      {!todos && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 pl-1 max-h-40 overflow-y-auto">
+                          {DEPARTAMENTOS_LIST.map((dept) => (
+                            <label key={dept} className="flex items-center gap-1.5 text-xs cursor-pointer hover:text-foreground text-muted-foreground py-0.5">
+                              <input
+                                type="checkbox"
+                                checked={depts.includes(dept)}
+                                onChange={(e) => toggleDept(key, dept, e.target.checked)}
+                                className="w-3.5 h-3.5 accent-primary flex-shrink-0"
+                              />
+                              <span className="truncate">{dept}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {permisosMutation.error && (
           <p className="text-sm text-destructive mt-4">{(permisosMutation.error as Error).message}</p>
@@ -387,7 +408,11 @@ export default function Usuarios() {
                   {!u.permisos || Object.keys(u.permisos).length === 0
                     ? <span className="text-destructive/70">{t("usuarios:noPermissions")}</span>
                     : Object.entries(u.permisos).map(([mod, depts]) => {
-                        const label = mod === "asistencia" ? "Asist." : mod === "colaboradores" ? "Colab." : "T.Extra";
+                        const modInfo = MODULOS.find((m) => m.key === mod);
+                        const label = modInfo?.label ?? mod;
+                        if (!modInfo?.hasDepts) {
+                          return <span key={mod} className="mr-1">{label}</span>;
+                        }
                         const depLabel = depts.includes("*") ? t("usuarios:accessAll") : depts.length === 0 ? t("usuarios:accessNone") : t("usuarios:accessDepts_other", { count: depts.length });
                         return <span key={mod} className="mr-1">{label} ({depLabel})</span>;
                       })

@@ -27,11 +27,17 @@ const upload = multer({
 const router = Router();
 
 // GET /api/v1/colaboradores?activo=true|false
-router.get("/", requireAuth, requireModulo("colaboradores"), async (req, res, next) => {
+router.get("/", requireAuth, async (req, res, next) => {
   try {
     const soloActivos = req.query.activo !== "false";
     const user = req.user as AuthUser;
-    const depts = getAllowedDepts(user, "colaboradores");
+    const moduloKey = soloActivos ? "colaboradores" : "bajas";
+
+    if (user.role !== "admin" && !user.permisos?.[moduloKey]) {
+      return res.status(403).json({ success: false, code: "FORBIDDEN", message: "Sin acceso a este módulo" });
+    }
+
+    const depts = getAllowedDepts(user, moduloKey);
 
     if (depts !== null && depts.length === 0) {
       return res.json({ success: true, colaboradores: [] });
@@ -71,7 +77,7 @@ router.get("/", requireAuth, requireModulo("colaboradores"), async (req, res, ne
 });
 
 // POST /api/v1/colaboradores
-router.post("/", requireAuth, validateBody(colaboradorSchema), async (req, res, next) => {
+router.post("/", requireAuth, requireModulo("agregar_colaborador"), validateBody(colaboradorSchema), async (req, res, next) => {
   try {
     const data = colaboradorSchema.parse(req.body);
     const [row] = await db
@@ -131,7 +137,7 @@ router.put("/:id", requireAuth, validateBody(colaboradorSchema), async (req, res
 });
 
 // PATCH /api/v1/colaboradores/:id/estado — dar de baja / reactivar
-router.patch("/:id/estado", requireAuth, async (req, res, next) => {
+router.patch("/:id/estado", requireAuth, requireModulo("bajas"), async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
 

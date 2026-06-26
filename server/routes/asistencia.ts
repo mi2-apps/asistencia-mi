@@ -52,7 +52,7 @@ router.get("/reporte", requireAuth, requireModulo("asistencia"), async (req, res
 });
 
 // GET /api/v1/asistencia/semana?inicio=YYYY-MM-DD&fin=YYYY-MM-DD
-router.get("/semana", requireAuth, requireModulo("asistencia"), async (req, res, next) => {
+router.get("/semana", requireAuth, requireModulo("historial"), async (req, res, next) => {
   try {
     const { inicio, fin } = req.query;
     if (!inicio || !fin) {

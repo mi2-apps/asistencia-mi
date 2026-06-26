@@ -72,11 +72,11 @@ function App() {
             <Switch>
               <Route path="/"                      component={() => <Redirect to="/asistencia" />} />
               <Route path="/asistencia"            component={Asistencia} />
-              <Route path="/historial"             component={Historial} />
+              <Route path="/historial"             component={() => <PermGuard modulo="historial"><Historial /></PermGuard>} />
               <Route path="/usuarios"              component={() => <PermGuard modulo="admin"><Usuarios /></PermGuard>} />
               <Route path="/colaboradores"         component={() => <PermGuard modulo="colaboradores"><Colaboradores /></PermGuard>} />
-              <Route path="/agregar-colaborador"   component={() => <PermGuard modulo="colaboradores"><AgregarColaborador /></PermGuard>} />
-              <Route path="/bajas"                 component={() => <PermGuard modulo="colaboradores"><Bajas /></PermGuard>} />
+              <Route path="/agregar-colaborador"   component={() => <PermGuard modulo="agregar_colaborador"><AgregarColaborador /></PermGuard>} />
+              <Route path="/bajas"                 component={() => <PermGuard modulo="bajas"><Bajas /></PermGuard>} />
               <Route path="/tiempo-extra"          component={() => <PermGuard modulo="tiempo_extra"><TiempoExtra /></PermGuard>} />
               <Route path="/changelog"             component={Changelog} />
               <Route path="/manual"               component={UserManual} />
