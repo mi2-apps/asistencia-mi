@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Search, Trash2 } from "lucide-react";
@@ -76,6 +76,25 @@ export default function Asistencia() {
   }, [reporte, deptActual, busqueda]);
 
   const TURNO_ORDER = ["Matutino", "Vespertino", "Nocturno", "Mixto"];
+
+  const statsPorTurno = useMemo(() => {
+    if (!deptActual) return [];
+    const deptRows = reporte.filter((r) => r.departamento === deptActual);
+    const map = new Map<string, { presentes: number; inasistencias: number; pendientes: number }>();
+    for (const r of deptRows) {
+      const key = r.turno?.trim() || "Sin turno";
+      if (!map.has(key)) map.set(key, { presentes: 0, inasistencias: 0, pendientes: 0 });
+      const s = map.get(key)!;
+      if (!r.estado) s.pendientes++;
+      else if (r.estado === "Presente") s.presentes++;
+      else s.inasistencias++;
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => {
+      const ia = TURNO_ORDER.indexOf(a), ib = TURNO_ORDER.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+  }, [reporte, deptActual]);
 
   const filasPorTurno = useMemo(() => {
     const groups = new Map<string, ReporteRow[]>();
@@ -202,6 +221,20 @@ export default function Asistencia() {
         </div>
       </div>
 
+      {deptActual && statsPorTurno.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {statsPorTurno.map(([turno, s]) => (
+            <div key={turno} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">
+              <span className="font-semibold text-foreground">{turno}</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-green-600 font-medium">{s.presentes} Presentes</span>
+              <span className="text-red-500 font-medium">{s.inasistencias} Inasistencias</span>
+              {s.pendientes > 0 && <span className="text-amber-500 font-medium">{s.pendientes} Pendientes</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
       {!deptActual ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {deptCards.map((dept) => {
@@ -296,8 +329,8 @@ export default function Asistencia() {
                   </thead>
                   <tbody>
                     {filasPorTurno.map(([turno, rows]) => (
-                      <>
-                        <tr key={`header-${turno}`} className="bg-muted/50 border-b border-border">
+                      <React.Fragment key={turno}>
+                        <tr className="bg-muted/50 border-b border-border">
                           <td colSpan={5} className="px-4 py-1.5">
                             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{turno}</span>
                             <span className="ml-2 text-xs text-muted-foreground/60">({rows.length})</span>
@@ -340,7 +373,7 @@ export default function Asistencia() {
                             </td>
                           </tr>
                         ))}
-                      </>
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
