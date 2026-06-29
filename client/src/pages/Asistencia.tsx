@@ -43,7 +43,7 @@ export default function Asistencia() {
   }, [allowedDepts]);
   const qc                                = useQueryClient();
 
-  const { data, isLoading } = useQuery({ queryKey: ["asistencia"], queryFn: fetchReporte, refetchInterval: 60_000 });
+  const { data, isLoading } = useQuery({ queryKey: ["asistencia"], queryFn: fetchReporte, refetchInterval: 60_000, staleTime: 30_000 });
   const reporte = data?.reporte ?? [];
 
   const deptStats = useMemo(() => {
@@ -119,7 +119,26 @@ export default function Asistencia() {
       });
       if (!r.ok) throw new Error("Error al registrar");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["asistencia"] }),
+    onMutate: async ({ persona_id, estado, tipo_inasistencia }) => {
+      await qc.cancelQueries({ queryKey: ["asistencia"] });
+      const prev = qc.getQueryData<{ reporte: ReporteRow[] }>(["asistencia"]);
+      qc.setQueryData<{ reporte: ReporteRow[] }>(["asistencia"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          reporte: old.reporte.map((r) =>
+            r.colaborador_id === persona_id
+              ? { ...r, estado: estado === "Presente" ? "Presente" : "Inasistencia", tipo_inasistencia: tipo_inasistencia ?? null }
+              : r
+          ),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["asistencia"], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["asistencia"] }),
   });
 
   const limpiarDiaMutation = useMutation({

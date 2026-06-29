@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import helmet from "helmet";
 import morgan from "morgan";
 import cors from "cors";
+import compression from "compression";
 import { rateLimit } from "express-rate-limit";
 import session from "express-session";
 import passport from "passport";
@@ -26,6 +27,9 @@ const PORT = Number(process.env.PORT ?? 3000);
 // Without this, express-session won't send the Secure cookie and OIDC state
 // stored in the session is lost between the authorize redirect and the callback.
 app.set("trust proxy", 1);
+
+// ── Compression ───────────────────────────────────────────────────────────────
+app.use(compression());
 
 // ── Security & logging ────────────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -112,6 +116,8 @@ async function runMigrations() {
     await client.query(`ALTER TABLE asistencia ADD COLUMN IF NOT EXISTS edit_count INTEGER NOT NULL DEFAULT 0`);
     await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS dado_de_baja_por VARCHAR(60)`);
     await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW()`);
+    await client.query(`CREATE INDEX IF NOT EXISTS asistencia_colaborador_fecha_idx ON asistencia (colaborador_id, fecha)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS colaboradores_activo_dept_idx ON colaboradores (activo, departamento)`);
     await client.query(`UPDATE usuarios SET role = 'admin' WHERE username = 'leonel.hernandez' AND role != 'admin'`);
     console.log("[asistencia-mi] migrations ok");
   } catch (err) {
