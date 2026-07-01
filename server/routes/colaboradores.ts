@@ -31,7 +31,8 @@ router.get("/", requireAuth, async (req, res, next) => {
   try {
     const soloActivos = req.query.activo !== "false";
     const user = req.user as AuthUser;
-    const moduloKey = soloActivos ? "colaboradores" : "bajas";
+    const moduloParam = req.query.modulo as string | undefined;
+    const moduloKey = moduloParam ?? (soloActivos ? "colaboradores" : "bajas");
 
     if (user.role !== "admin" && !user.permisos?.[moduloKey]) {
       return res.status(403).json({ success: false, code: "FORBIDDEN", message: "Sin acceso a este módulo" });

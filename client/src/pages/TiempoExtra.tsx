@@ -108,7 +108,7 @@ export default function TiempoExtra() {
   // Colaboradores activos (para búsqueda en registro)
   const { data: colabsData } = useQuery<{ colaboradores: ColabRow[] }>({
     queryKey: ["colaboradores-activos"],
-    queryFn: () => fetch("/api/v1/colaboradores?activo=true", { credentials: "include" }).then(r => r.json()),
+    queryFn: () => fetch("/api/v1/colaboradores?activo=true&modulo=tiempo_extra", { credentials: "include" }).then(r => r.json()),
     staleTime: 5 * 60 * 1000,
   });
 
