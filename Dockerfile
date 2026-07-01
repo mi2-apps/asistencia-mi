@@ -1,13 +1,15 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
+RUN chown node:node /app
+USER node
 
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
 # NODE_ENV=production is injected by Coolify as a build arg and causes npm to
 # skip devDependencies. Force --include=dev so vite/tsc are available.
 RUN npm ci --include=dev
 
-COPY . .
+COPY --chown=node:node . .
 RUN npm run build
 
 # ── Stage 2: Producción ───────────────────────────────────────────────────────
