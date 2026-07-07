@@ -39,14 +39,20 @@ router.get("/", requireAuth, async (req, res, next) => {
     }
 
     const depts = getAllowedDepts(user, moduloKey);
+    const deptParam = req.query.departamento as string | undefined;
 
-    if (depts !== null && depts.length === 0) {
+    // If a specific department is requested, intersect with allowed depts
+    const effectiveDepts = deptParam
+      ? (depts === null ? [deptParam] : depts.filter(d => d === deptParam))
+      : (depts === null ? null : depts);
+
+    if (effectiveDepts !== null && effectiveDepts.length === 0) {
       return res.json({ success: true, colaboradores: [] });
     }
 
-    const whereClause = depts === null
+    const whereClause = effectiveDepts === null
       ? eq(colaboradores.activo, soloActivos)
-      : and(eq(colaboradores.activo, soloActivos), inArray(colaboradores.departamento, depts))!;
+      : and(eq(colaboradores.activo, soloActivos), inArray(colaboradores.departamento, effectiveDepts))!;
 
     const rows = await db
       .select({

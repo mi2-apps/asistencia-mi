@@ -105,11 +105,15 @@ export default function TiempoExtra() {
     queryFn: () => fetch("/api/v1/tiempo-extra/stats", { credentials: "include" }).then(r => r.json()),
   });
 
-  // Colaboradores activos (para búsqueda en registro)
+  // Colaboradores activos — keyed by department so React Query re-fetches when dept changes
   const { data: colabsData } = useQuery<{ colaboradores: ColabRow[] }>({
-    queryKey: ["colaboradores-activos"],
-    queryFn: () => fetch("/api/v1/colaboradores?activo=true&modulo=tiempo_extra", { credentials: "include" }).then(r => r.json()),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ["colaboradores-activos", deptActual],
+    queryFn: () => fetch(
+      `/api/v1/colaboradores?activo=true&modulo=tiempo_extra${deptActual ? `&departamento=${encodeURIComponent(deptActual)}` : ""}`,
+      { credentials: "include" }
+    ).then(r => r.json()),
+    enabled: vista === "registrar" && !!deptActual,
+    staleTime: 0,
   });
 
   // Semanas del departamento seleccionado
@@ -235,16 +239,15 @@ export default function TiempoExtra() {
   });
 
   const colabsFiltrados = useMemo(() => {
-    if (!busqueda.trim() || !deptActual) return [];
+    if (!busqueda.trim()) return [];
     const q = busqueda.toLowerCase();
     return (colabsData?.colaboradores ?? [])
-      .filter(c => c.departamento === deptActual)
       .filter(c =>
         (c.fullname ?? `${c.nombre} ${c.apellido}`).toLowerCase().includes(q) ||
         c.numero_empleado?.toLowerCase().includes(q)
       )
       .slice(0, 8);
-  }, [busqueda, colabsData, deptActual]);
+  }, [busqueda, colabsData]);
 
   const registrosFiltrados = useMemo(() => {
     const lista = detalleData?.registros ?? [];
