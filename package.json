@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Sistema de Control de Asistencia — MI Technologies",
+  "description": "Sistema de Control de Asistencia \u2014 MI Technologies",
   "scripts": {
     "dev": "concurrently -k -n client,server -c blue,green \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
@@ -84,7 +84,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.16.0",
     "typescript": "^5.5.0",
-    "vite": "^5.3.0"
+    "vite": "^6.4.3"
   },
   "engines": {
     "node": ">=20"
