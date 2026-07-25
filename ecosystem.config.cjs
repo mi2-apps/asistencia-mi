@@ -1,5 +1,5 @@
 // PM2 ecosystem — runs the built Express server in production.
-// Coolify build pipeline runs `npm run build` then `npm start`.
+// Coolify build pipeline runs `pnpm run build` then `pnpm start`.
 module.exports = {
   apps: [
     {

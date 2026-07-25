@@ -58,18 +58,30 @@ chmod +x /tmp/check-stack && /tmp/check-stack
 - `PORT` — `7000` (or whatever you tell the bot; PM2 reads this from `ecosystem.config.cjs`).
 - Storage / API keys / Sentry DSN: see the launch page sections.
 
+## Package manager
+
+This app uses **pnpm** (pinned via `package.json` → `packageManager`; corepack activates it) on
+Node 24 (see `.nvmrc`; pnpm v11 needs Node ≥ 22). `pnpm-workspace.yaml` carries the supply-chain
+security policy: dependency build/postinstall scripts are blocked by default (`allowBuilds`
+allow-list — only `bcrypt` and `esbuild` may run; `bcrypt` because it is a production native dep for
+password hashing), newly-published versions are quarantined 24h (`minimumReleaseAge: 1440`), and
+transitive exotic (git/tarball) deps are blocked (`blockExoticSubdeps`). If a dependency legitimately
+needs its build script, add it to `allowBuilds` — don't disable the policy.
+
 ## Local dev
 
 ```bash
-npm install
-npm run dev          # client (5173) + server (7000) with HMR
+corepack enable      # one-time: activates the pinned pnpm
+pnpm install
+pnpm run dev         # client (5173) + server (7000) with HMR
 ```
 
 ## Build + run as Coolify does
 
 ```bash
-npm run build        # builds client (Vite) + server (tsc)
-npm start            # PM2-runtime from ecosystem.config.cjs
+pnpm install --frozen-lockfile   # like `npm ci` — fails on lockfile drift
+pnpm run build       # builds client (Vite) + server (tsc)
+pnpm start           # PM2-runtime from ecosystem.config.cjs
 ```
 
 ## Deviating from the template

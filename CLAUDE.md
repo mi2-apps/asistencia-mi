@@ -11,10 +11,11 @@
 ## Dev
 
 ```bash
-# from asistencia-mi/
-npm install
+# from asistencia-mi/  (pnpm — corepack activates the pinned version)
+corepack enable
+pnpm install
 cp .env.example .env   # fill DATABASE_URL + OIDC vars
-npm run dev            # Vite :5173 + Express :3000 concurrently
+pnpm run dev           # Vite :5173 + Express :3000 concurrently
 ```
 
 ## Key architecture rules

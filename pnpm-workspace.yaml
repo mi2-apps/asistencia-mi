@@ -1,0 +1,35 @@
+# pnpm supply-chain security defaults (pnpm v11) — Phase 3 of the fleet pnpm migration
+# (Faustino's security recommendation, Amir-approved). Mirrors mi2-apps/stack-template.
+# Refs: https://pnpm.io/supply-chain-security  |  https://pnpm.io/settings
+#
+# This is pnpm's settings file even for a single-package repo (no `packages:` key = not a monorepo).
+
+# 1) Block dependency lifecycle (postinstall/build) scripts by DEFAULT.
+#    In pnpm v11 every package that ships a build script is refused (ERR_PNPM_IGNORED_BUILDS) unless
+#    it is listed here as true (allow) or false (explicitly deny). Add a package as `true` ONLY when
+#    its build is genuinely required. Everything not listed stays blocked — a compromised transitive
+#    dependency can no longer silently run code during install.
+#
+# bcrypt   -> ALLOWED. It is a PRODUCTION runtime dependency: password hashing/verification in
+#             server/auth/routes.ts (login: bcrypt.compare) and server/routes/usuarios.ts
+#             (bcrypt.hash on user create/update). Its install script provisions the native N-API
+#             binding (@mapbox/node-pre-gyp prebuilt binary, or a node-gyp compile fallback on
+#             musl/Node 24 where no prebuild matches — the Dockerfile installs python3/make/g++ for
+#             that fallback). Blocking it makes `require('bcrypt')` throw at boot → auth is dead.
+# esbuild  -> ALLOWED. The Vite toolchain (client build) plus tsx/drizzle-kit depend on esbuild's
+#             platform binary; its postinstall fetches that binary and the client build fails
+#             without it. (Multiple esbuild versions are hoisted; the name-keyed allow covers all.)
+allowBuilds:
+  bcrypt: true
+  esbuild: true
+  # core-js -> explicitly DENIED. Its postinstall only prints a funding/donation banner; it ships no
+  #            build artifact the app needs and is a dev-only transitive dep. Blocking it is safe.
+  core-js: false
+
+# 2) Delay installing newly-published versions by 24h (1440 min) so a freshly-compromised release
+#    has time to be yanked before it can land in an install. (Set 0 to disable.)
+minimumReleaseAge: 1440
+
+# 3) Only DIRECT dependencies (those listed in this repo's package.json) may use exotic sources
+#    (git repositories / direct tarball URLs). Transitive exotic deps are blocked.
+blockExoticSubdeps: true

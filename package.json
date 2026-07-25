@@ -5,10 +5,10 @@
   "type": "module",
   "description": "Sistema de Control de Asistencia \u2014 MI Technologies",
   "scripts": {
-    "dev": "concurrently -k -n client,server -c blue,green \"npm run dev:client\" \"npm run dev:server\"",
+    "dev": "concurrently -k -n client,server -c blue,green \"pnpm run dev:client\" \"pnpm run dev:server\"",
     "dev:client": "vite",
     "dev:server": "tsx watch --env-file=.env server/index.ts",
-    "build": "npm run build:client && npm run build:server",
+    "build": "pnpm run build:client && pnpm run build:server",
     "build:client": "vite build",
     "build:server": "tsc -p server/tsconfig.json",
     "start": "pm2-runtime ecosystem.config.cjs",
@@ -87,8 +87,9 @@
     "vite": "^6.4.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
+  "packageManager": "pnpm@11.17.0",
   "overrides": {
     "js-yaml": ">=4.2.0",
     "cross-spawn": ">=7.0.6",
