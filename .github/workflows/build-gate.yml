@@ -1,0 +1,23 @@
+# build-gate — MI Apps pre-merge build check.
+# Fails a commit/PR (red X) if the app doesn't install + build cleanly, so broken code
+# can't sit on master unbuilt. Catches package-lock.json drift (npm ci) + tsc/vite errors.
+name: build-gate
+on:
+  push:
+    branches: [master, main, dev]
+  pull_request:
+    branches: [master, main]
+jobs:
+  build-gate:
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install (frozen lockfile)
+        run: npm ci --include=dev
+      - name: Build (if a build script exists)
+        run: npm run build --if-present
