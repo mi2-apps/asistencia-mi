@@ -15,7 +15,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx server/db/migrate.ts",
-    "typecheck": "tsc -p . --noEmit && tsc -p server/tsconfig.json --noEmit",
+    "typecheck": "st=0; tsc -p . --noEmit || st=1; tsc -p server/tsconfig.json --noEmit || st=1; exit $st",
+    "typecheck:modules": "tsc -p tsconfig.modules.json --noEmit",
     "lint": "biome check .",
     "format": "biome check --write ."
   },

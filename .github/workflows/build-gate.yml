@@ -30,9 +30,37 @@ jobs:
       # warn-only. This repo has 3 pre-existing errors (TS2339 'colaborador_id' in
       # client/src/pages/Historial.tsx), so it stays warn-only until those are paid down —
       # then drop continue-on-error to make it blocking like the rest of the fleet.
+      #
+      # This step covers APP code only (root project + server/tsconfig.json). The shared
+      # modules/** project is checked in the separate step below, on purpose: structural type
+      # debt in the shared modules/ templates must not hold app-code quality hostage, and
+      # keeping them separate means this step can go blocking the moment the 3 Historial.tsx
+      # errors are fixed, without waiting on modules/**.
+      #
+      # NOTE: the script deliberately does NOT chain its two projects with `&&`. The 3 known
+      # Historial.tsx errors would short-circuit the chain and server/tsconfig.json would
+      # never run. It runs both and ORs their exit codes instead.
       - name: Typecheck (warn-only during rollout)
         continue-on-error: true
         run: pnpm run --if-present typecheck
+      # tsconfig.modules.json — a third project covering `modules/**`, the MI shared-code
+      # convention, which was in NO tsconfig project and so shipped to production with zero
+      # type checking (coverage was 40/64 TS files, now 57/64). That includes
+      # modules/talk-to-your-data/server/agent/sql-guard.ts, the SQL-injection guard for the
+      # NL->SQL Data Chat feature.
+      #
+      # Warn-only: it surfaces 61 pre-existing errors, almost all the shared modules/
+      # templates importing host-app dependencies and path aliases this repo doesn't have
+      # (openai, playwright, recharts, @modelcontextprotocol/sdk, react-markdown, ../db.js,
+      # @client/*, @/*) plus the implicit-any cascade behind those unresolved imports — a
+      # structural question about how modules/ declares its peer contract, not sloppy code.
+      # NOT regressions, NOT hand-fixed.
+      #
+      # Keeping it as its own step means the debt stays VISIBLE on every run rather than
+      # hidden behind an exclusion. Drop continue-on-error once modules/** reaches 0.
+      - name: Typecheck (modules — warn-only during rollout)
+        continue-on-error: true
+        run: pnpm run --if-present typecheck:modules
       - name: Build (fails on tsc/vite errors)
         run: pnpm run build
       - name: Lint (Biome — warn-only during rollout)
