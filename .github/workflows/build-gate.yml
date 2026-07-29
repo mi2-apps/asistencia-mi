@@ -23,6 +23,16 @@ jobs:
         run: corepack enable
       - name: Install (frozen lockfile — the pnpm equivalent of `npm ci`; fails on lock drift)
         run: pnpm install --frozen-lockfile
+      # Typecheck. `pnpm run build` does NOT type-check the client: `vite build` is
+      # transpile-only (it strips TS types without checking them), and build:server only
+      # covers server/tsconfig.json. Fleet ratchet rule: a repo at zero type errors goes
+      # BLOCKING immediately so it can't regress; only repos with existing type debt stay
+      # warn-only. This repo has 3 pre-existing errors (TS2339 'colaborador_id' in
+      # client/src/pages/Historial.tsx), so it stays warn-only until those are paid down —
+      # then drop continue-on-error to make it blocking like the rest of the fleet.
+      - name: Typecheck (warn-only during rollout)
+        continue-on-error: true
+        run: pnpm run --if-present typecheck
       - name: Build (fails on tsc/vite errors)
         run: pnpm run build
       - name: Lint (Biome — warn-only during rollout)
