@@ -1,0 +1,38 @@
+{
+  // Third TS project — type-checks the runtime code the other two projects miss.
+  //
+  // The root project only includes ["client/src/**/*", "shared/**/*", "vite.config.ts"] and
+  // server/tsconfig.json only ["server/**/*.ts", "../shared/**/*.ts"]. That left the MI
+  // shared-code convention `modules/**` completely UNCHECKED even though it ships to
+  // production — including modules/talk-to-your-data/server/agent/sql-guard.ts, the
+  // SQL-injection guard for the NL->SQL "Data Chat" feature. Coverage was 40/64 TS files;
+  // with this project it is 57/64. The remaining 7 are the 5 doc snippets excluded below
+  // plus drizzle.config.ts and tailwind.config.ts (build-time config, not shipped code).
+  //
+  // "types": ["node"] — the root project is a browser project (lib DOM, no node globals in
+  // its intent). The module server code here is server-side, so the ambient type set is
+  // pinned to node explicitly rather than relying on @types/* auto-discovery.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["modules/**/*"],
+  // Excluded BY EXACT PATH (never a whole directory — precision over blanket ignores).
+  // These five are paste-in documentation snippets, not standalone modules: they are bare
+  // fragments meant to be copied into a host file, so they reference identifiers that only
+  // exist at the paste site (`app`, `router`, `api`, `pgTable`, `varchar`, ...).
+  //
+  // App-routes-snippet.tsx is the critical one: its bare top-level JSX is a *syntactic*
+  // error (TS2657), and tsc reports syntactic diagnostics INSTEAD OF semantic ones for the
+  // whole program. Leaving it in silently suppressed every type error in every other file
+  // here — the program reported exactly 1 error instead of 267. Biome already ignores this
+  // same file by exact path (see biome.json).
+  "exclude": [
+    "modules/developer-manual/client/App-routes-snippet.tsx",
+    "modules/developer-manual/server/register-snippet.ts",
+    "modules/developer-manual/server/routes.external-snippet.ts",
+    "modules/developer-manual/server/schema-snippet.ts",
+    "modules/talk-to-your-data/server/routes.chat-snippet.ts"
+  ]
+}
