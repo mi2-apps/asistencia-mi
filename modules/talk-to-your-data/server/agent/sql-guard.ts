@@ -22,7 +22,8 @@ const FORBIDDEN =
 // Internal / secret identifiers the agent may never read. The agent's own bookkeeping tables
 // (agent_chats, agent_pages) and auth (session) are blocked by default. __EDIT__: append any
 // app-specific sensitive table names (users, billing, api_keys, …) with `|name` here.
-const DENY_IDENT = /\b(session|agent_chats|agent_pages|pg_catalog|pg_[a-z_]+|information_schema)\b/i;
+const DENY_IDENT =
+  /\b(session|agent_chats|agent_pages|pg_catalog|pg_[a-z_]+|information_schema)\b/i;
 
 export class SqlGuardError extends Error {}
 
@@ -35,7 +36,7 @@ export function validateSql(raw: string): string {
   let prev: string;
   do {
     prev = sql;
-    sql = sql.replace(/^\s*--[^\n]*(\n|$)/, "");   // leading line comment
+    sql = sql.replace(/^\s*--[^\n]*(\n|$)/, ""); // leading line comment
     sql = sql.replace(/^\s*\/\*[\s\S]*?\*\//, ""); // leading block comment
     sql = sql.trim();
   } while (sql !== prev && sql);
@@ -43,8 +44,10 @@ export function validateSql(raw: string): string {
   // Strip a single trailing semicolon; any remaining ';' means multi-statement → reject.
   sql = sql.replace(/;\s*$/, "");
   if (sql.includes(";")) throw new SqlGuardError("multiple statements are not allowed");
-  if (!/^\s*(SELECT|WITH)\b/i.test(sql)) throw new SqlGuardError("only SELECT / WITH queries are allowed");
-  if (FORBIDDEN.test(sql)) throw new SqlGuardError("query contains a forbidden keyword (read-only access)");
+  if (!/^\s*(SELECT|WITH)\b/i.test(sql))
+    throw new SqlGuardError("only SELECT / WITH queries are allowed");
+  if (FORBIDDEN.test(sql))
+    throw new SqlGuardError("query contains a forbidden keyword (read-only access)");
   if (DENY_IDENT.test(sql)) throw new SqlGuardError("query references a restricted table");
   return sql;
 }
@@ -92,8 +95,9 @@ export async function runAgentSql(raw: string, maxRows = AGENT_MAX_ROWS): Promis
     if (/statement timeout/i.test(m)) {
       throw new SqlGuardError(
         `Query timed out (>${Math.round(AGENT_SQL_TIMEOUT_MS / 1000)}s) — it scans too much. ` +
-        `Aggregate directly with GROUP BY + LIMIT, add WHERE filters, and do NOT use SELECT DISTINCT ` +
-        `over large tables to explore values.`);
+          `Aggregate directly with GROUP BY + LIMIT, add WHERE filters, and do NOT use SELECT DISTINCT ` +
+          `over large tables to explore values.`,
+      );
     }
     throw new SqlGuardError(`SQL error: ${m}`);
   } finally {

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Sistema de Control de Asistencia \u2014 MI Technologies",
+  "description": "Sistema de Control de Asistencia — MI Technologies",
   "scripts": {
     "dev": "concurrently -k -n client,server -c blue,green \"pnpm run dev:client\" \"pnpm run dev:server\"",
     "dev:client": "vite",
@@ -16,7 +16,8 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx server/db/migrate.ts",
     "typecheck": "tsc -p . --noEmit",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
@@ -60,6 +61,7 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.5",
     "@types/bcrypt": "^5.0.2",
     "@types/compression": "^1.8.1",
     "@types/connect-pg-simple": "^7.0.3",

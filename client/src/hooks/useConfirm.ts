@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 
 interface ConfirmOptions {
   titulo: string;
@@ -24,10 +24,13 @@ export function useConfirm() {
     });
   }, []);
 
-  const handleResponse = useCallback((value: boolean) => {
-    state.resolve?.(value);
-    setState((s) => ({ ...s, open: false, resolve: null }));
-  }, [state]);
+  const handleResponse = useCallback(
+    (value: boolean) => {
+      state.resolve?.(value);
+      setState((s) => ({ ...s, open: false, resolve: null }));
+    },
+    [state],
+  );
 
   return { confirm, confirmState: state, handleResponse };
 }

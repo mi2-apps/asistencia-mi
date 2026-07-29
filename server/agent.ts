@@ -18,12 +18,12 @@
 
 import { WebSocket } from "ws";
 
-const POLL_MS          = 15_000;
-const POST_TIMEOUT_MS  = 20_000;
-const MAX_ERRORS       = 5;
+const POLL_MS = 15_000;
+const POST_TIMEOUT_MS = 20_000;
+const MAX_ERRORS = 5;
 const BREAKER_PAUSE_MS = 5 * 60 * 1_000;
-const RECONNECT_MS     = 10_000;
-const APP_URL          = "https://asistencia-mi.mi2.com.mx";
+const RECONNECT_MS = 10_000;
+const APP_URL = "https://asistencia-mi.mi2.com.mx";
 
 interface MMPost {
   id: string;
@@ -49,7 +49,8 @@ interface WSEvent {
   };
 }
 
-const SECRET_RE = /(?:password|token|secret|api_key|apikey|auth|bearer|credential)[^\s]*\s*[:=]\s*\S{6,}/gi;
+const SECRET_RE =
+  /(?:password|token|secret|api_key|apikey|auth|bearer|credential)[^\s]*\s*[:=]\s*\S{6,}/gi;
 function scrub(text: string): string {
   return text.replace(SECRET_RE, "[REDACTED]");
 }
@@ -60,14 +61,14 @@ function sleep(ms: number): Promise<void> {
 
 async function triggerDeploy(): Promise<boolean> {
   const token = process.env.STATUS_DASHBOARD_TOKEN;
-  const uuid  = process.env.APP_UUID;
+  const uuid = process.env.APP_UUID;
   if (!token || !uuid) return false;
   try {
     await fetch(`https://status-dashboard.mi2.com.mx/api/apps/${uuid}/env`, {
-      method:  "POST",
+      method: "POST",
       headers: { "X-App-Token": token, "Content-Type": "application/json" },
-      body:    JSON.stringify({ key: "DEPLOY_TS", value: new Date().toISOString(), redeploy: true }),
-      signal:  AbortSignal.timeout(POST_TIMEOUT_MS),
+      body: JSON.stringify({ key: "DEPLOY_TS", value: new Date().toISOString(), redeploy: true }),
+      signal: AbortSignal.timeout(POST_TIMEOUT_MS),
     });
     return true;
   } catch {
@@ -78,15 +79,15 @@ async function triggerDeploy(): Promise<boolean> {
 // ── Channel poller (existing commands: deploy, status) ────────────────────────
 
 class MattermostPoller {
-  private seen   = new Set<string>();
+  private seen = new Set<string>();
   private botId: string | null = null;
   private errors = 0;
 
   constructor(
-    private readonly url:     string,
-    private readonly token:   string,
+    private readonly url: string,
+    private readonly token: string,
     private readonly channel: string,
-    private readonly label:   string,
+    private readonly label: string,
   ) {}
 
   private async api<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -129,9 +130,7 @@ class MattermostPoller {
         this.seen.add(id);
         const p = resp.posts[id];
         if (!p || p.user_id === myId || p.type || p.props?.from_bot) continue;
-        await this.handle(p).catch((e) =>
-          console.error(`[agent:${this.label}] handle error:`, e),
-        );
+        await this.handle(p).catch((e) => console.error(`[agent:${this.label}] handle error:`, e));
       }
 
       this.errors = 0;
@@ -184,7 +183,7 @@ class MattermostWSAgent {
   private botId: string | null = null;
 
   constructor(
-    private readonly url:   string,
+    private readonly url: string,
     private readonly token: string,
   ) {}
 
@@ -216,13 +215,13 @@ class MattermostWSAgent {
 
   async postDM(toUserId: string, message: string): Promise<void> {
     const myId = await this.myId();
-    const chan  = await this.rest<{ id: string }>("/channels/direct", {
+    const chan = await this.rest<{ id: string }>("/channels/direct", {
       method: "POST",
-      body:   JSON.stringify([myId, toUserId]),
+      body: JSON.stringify([myId, toUserId]),
     });
     await this.rest("/posts", {
       method: "POST",
-      body:   JSON.stringify({ channel_id: chan.id, message: scrub(message) }),
+      body: JSON.stringify({ channel_id: chan.id, message: scrub(message) }),
     });
   }
 
@@ -273,11 +272,13 @@ class MattermostWSAgent {
     const ws = new WebSocket(this.wsUrl());
 
     ws.on("open", () => {
-      ws.send(JSON.stringify({
-        seq:    1,
-        action: "authentication_challenge",
-        data:   { token: this.token },
-      }));
+      ws.send(
+        JSON.stringify({
+          seq: 1,
+          action: "authentication_challenge",
+          data: { token: this.token },
+        }),
+      );
       console.log("[agent:ws] WebSocket connected —", this.wsUrl());
     });
 
@@ -287,7 +288,7 @@ class MattermostWSAgent {
           const evt = JSON.parse(raw.toString()) as WSEvent;
           if (evt.event !== "posted" || !evt.data?.post) return;
 
-          const post        = JSON.parse(evt.data.post) as MMPost;
+          const post = JSON.parse(evt.data.post) as MMPost;
           const channelType = evt.data.channel_type as string | undefined;
 
           // Only handle DMs (type "D") not sent by ourselves
@@ -326,10 +327,23 @@ class MattermostWSAgent {
 
 export async function startAgent(): Promise<void> {
   const pollerConfigs = [
-    { url: process.env.MM_URL,  token: process.env.MM_BOT_TOKEN,  channel: process.env.MM_CHANNEL_ID, label: "mibots"  },
-    { url: process.env.MM2_URL, token: process.env.MM2_BOT_TOKEN, channel: process.env.MM2_CHANNEL,   label: "miteams" },
+    {
+      url: process.env.MM_URL,
+      token: process.env.MM_BOT_TOKEN,
+      channel: process.env.MM_CHANNEL_ID,
+      label: "mibots",
+    },
+    {
+      url: process.env.MM2_URL,
+      token: process.env.MM2_BOT_TOKEN,
+      channel: process.env.MM2_CHANNEL,
+      label: "miteams",
+    },
   ].filter((c) => c.url && c.token && c.channel) as {
-    url: string; token: string; channel: string; label: string;
+    url: string;
+    token: string;
+    channel: string;
+    label: string;
   }[];
 
   if (pollerConfigs.length === 0 && !process.env.MM_URL) {
@@ -337,12 +351,16 @@ export async function startAgent(): Promise<void> {
     return;
   }
 
-  const pollers = pollerConfigs.map((c) => new MattermostPoller(c.url, c.token, c.channel, c.label));
+  const pollers = pollerConfigs.map(
+    (c) => new MattermostPoller(c.url, c.token, c.channel, c.label),
+  );
 
   // Startup notification on mibots
   if (pollers[0]) {
     try {
-      await pollers[0].post(`🟢 **asistencia-mi** online — ${new Date().toISOString()}\nURL: ${APP_URL}`);
+      await pollers[0].post(
+        `🟢 **asistencia-mi** online — ${new Date().toISOString()}\nURL: ${APP_URL}`,
+      );
     } catch {
       // non-fatal
     }

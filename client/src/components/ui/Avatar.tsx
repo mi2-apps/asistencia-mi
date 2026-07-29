@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { cn, iniciales } from "@client/lib/utils";
+import { useState } from "react";
 
 interface AvatarProps {
   nombre: string;
@@ -10,9 +10,9 @@ interface AvatarProps {
 }
 
 const sizes = {
-  sm:  "w-9 h-9 text-sm",
-  md:  "w-11 h-11 text-base",
-  lg:  "w-14 h-14 text-xl",
+  sm: "w-9 h-9 text-sm",
+  md: "w-11 h-11 text-base",
+  lg: "w-14 h-14 text-xl",
 };
 
 export function Avatar({ nombre, apellido, fotoPerfil, size = "md", className }: AvatarProps) {
@@ -36,7 +36,7 @@ export function Avatar({ nombre, apellido, fotoPerfil, size = "md", className }:
         "rounded-full bg-primary text-primary-foreground font-semibold",
         "flex items-center justify-center flex-shrink-0 select-none",
         sizes[size],
-        className
+        className,
       )}
     >
       {iniciales(nombre, apellido)}

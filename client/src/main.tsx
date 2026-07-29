@@ -1,23 +1,26 @@
 import "@client/i18n";
-import React, { useEffect } from "react";
-import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Router, Route, Switch, Redirect } from "wouter";
 import { AppLayout } from "@client/components/layout/AppLayout";
 import { useAuthStore } from "@client/stores/authStore";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React, { useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { Redirect, Route, Router, Switch } from "wouter";
 import "./index.css";
 
 // Lazy-load pages
-const Asistencia         = React.lazy(() => import("@client/pages/Asistencia"));
-const Historial          = React.lazy(() => import("@client/pages/Historial"));
-const Usuarios           = React.lazy(() => import("@client/pages/Usuarios"));
-const Colaboradores      = React.lazy(() => import("@client/pages/Colaboradores"));
+const Asistencia = React.lazy(() => import("@client/pages/Asistencia"));
+const Historial = React.lazy(() => import("@client/pages/Historial"));
+const Usuarios = React.lazy(() => import("@client/pages/Usuarios"));
+const Colaboradores = React.lazy(() => import("@client/pages/Colaboradores"));
 const AgregarColaborador = React.lazy(() => import("@client/pages/AgregarColaborador"));
-const Bajas              = React.lazy(() => import("@client/pages/Bajas"));
-const Changelog          = React.lazy(() => import("@client/pages/Changelog").then((m) => ({ default: m.default })));
-const UserManual         = React.lazy(() => import("@client/pages/UserManual"));
-const TiempoExtra        = React.lazy(() => import("@client/pages/TiempoExtra"));
-const DeveloperManual    = React.lazy(() => import("@client/pages/DeveloperManual"));
+const Bajas = React.lazy(() => import("@client/pages/Bajas"));
+const Changelog = React.lazy(() =>
+  import("@client/pages/Changelog").then((m) => ({ default: m.default })),
+);
+const UserManual = React.lazy(() => import("@client/pages/UserManual"));
+const TiempoExtra = React.lazy(() => import("@client/pages/TiempoExtra"));
+const DeveloperManual = React.lazy(() => import("@client/pages/DeveloperManual"));
+
 import { WhatsNewModal } from "@client/pages/Changelog";
 
 const queryClient = new QueryClient({
@@ -67,21 +70,72 @@ function App() {
     <AuthGate>
       <AppLayout>
         <WhatsNewModal />
-        <React.Suspense fallback={<div className="p-8 text-muted-foreground text-sm">Cargando módulo...</div>}>
+        <React.Suspense
+          fallback={<div className="p-8 text-muted-foreground text-sm">Cargando módulo...</div>}
+        >
           <Router>
             <Switch>
-              <Route path="/"                      component={() => <Redirect to="/asistencia" />} />
-              <Route path="/asistencia"            component={Asistencia} />
-              <Route path="/historial"             component={() => <PermGuard modulo="historial"><Historial /></PermGuard>} />
-              <Route path="/usuarios"              component={() => <PermGuard modulo="admin"><Usuarios /></PermGuard>} />
-              <Route path="/colaboradores"         component={() => <PermGuard modulo="colaboradores"><Colaboradores /></PermGuard>} />
-              <Route path="/agregar-colaborador"   component={() => <PermGuard modulo="agregar_colaborador"><AgregarColaborador /></PermGuard>} />
-              <Route path="/bajas"                 component={() => <PermGuard modulo="bajas"><Bajas /></PermGuard>} />
-              <Route path="/tiempo-extra"          component={() => <PermGuard modulo="tiempo_extra"><TiempoExtra /></PermGuard>} />
-              <Route path="/changelog"             component={Changelog} />
-              <Route path="/manual"               component={UserManual} />
-              <Route path="/developer-manual"     component={() => <PermGuard modulo="admin"><DeveloperManual /></PermGuard>} />
-              <Route                               component={() => <Redirect to="/asistencia" />} />
+              <Route path="/" component={() => <Redirect to="/asistencia" />} />
+              <Route path="/asistencia" component={Asistencia} />
+              <Route
+                path="/historial"
+                component={() => (
+                  <PermGuard modulo="historial">
+                    <Historial />
+                  </PermGuard>
+                )}
+              />
+              <Route
+                path="/usuarios"
+                component={() => (
+                  <PermGuard modulo="admin">
+                    <Usuarios />
+                  </PermGuard>
+                )}
+              />
+              <Route
+                path="/colaboradores"
+                component={() => (
+                  <PermGuard modulo="colaboradores">
+                    <Colaboradores />
+                  </PermGuard>
+                )}
+              />
+              <Route
+                path="/agregar-colaborador"
+                component={() => (
+                  <PermGuard modulo="agregar_colaborador">
+                    <AgregarColaborador />
+                  </PermGuard>
+                )}
+              />
+              <Route
+                path="/bajas"
+                component={() => (
+                  <PermGuard modulo="bajas">
+                    <Bajas />
+                  </PermGuard>
+                )}
+              />
+              <Route
+                path="/tiempo-extra"
+                component={() => (
+                  <PermGuard modulo="tiempo_extra">
+                    <TiempoExtra />
+                  </PermGuard>
+                )}
+              />
+              <Route path="/changelog" component={Changelog} />
+              <Route path="/manual" component={UserManual} />
+              <Route
+                path="/developer-manual"
+                component={() => (
+                  <PermGuard modulo="admin">
+                    <DeveloperManual />
+                  </PermGuard>
+                )}
+              />
+              <Route component={() => <Redirect to="/asistencia" />} />
             </Switch>
           </Router>
         </React.Suspense>
@@ -95,5 +149,5 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

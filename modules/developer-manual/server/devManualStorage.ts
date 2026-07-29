@@ -4,9 +4,15 @@
 // framework. Every write snapshots a full revision and uses an optimistic
 // concurrency token (editLockVersion) so concurrent editors/agents get a 409
 // instead of silently clobbering each other.
-import { db } from "./db";
-import { devManualPages, devManualRevisions, devManualTableInfo, devManualDictionary } from "@shared/schema";
+
+import {
+  devManualDictionary,
+  devManualPages,
+  devManualRevisions,
+  devManualTableInfo,
+} from "@shared/schema";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { db } from "./db";
 
 export interface ManualActor {
   userId?: string | null;
@@ -42,7 +48,11 @@ export async function listDevManualPages(includeUnpublished = false) {
     .select(LIST_COLUMNS)
     .from(devManualPages)
     .where(includeUnpublished ? undefined : eq(devManualPages.isPublished, true))
-    .orderBy(asc(devManualPages.section), asc(devManualPages.displayOrder), asc(devManualPages.title));
+    .orderBy(
+      asc(devManualPages.section),
+      asc(devManualPages.displayOrder),
+      asc(devManualPages.title),
+    );
   return rows;
 }
 
@@ -50,7 +60,11 @@ export async function getDevManualPageBySlug(slug: string, includeUnpublished = 
   const [row] = await db
     .select()
     .from(devManualPages)
-    .where(includeUnpublished ? eq(devManualPages.slug, slug) : and(eq(devManualPages.slug, slug), eq(devManualPages.isPublished, true)))
+    .where(
+      includeUnpublished
+        ? eq(devManualPages.slug, slug)
+        : and(eq(devManualPages.slug, slug), eq(devManualPages.isPublished, true)),
+    )
     .limit(1);
   return row || null;
 }
@@ -62,7 +76,15 @@ export async function getDevManualPageById(id: string) {
 
 /** Create a page + its baseline revision (version 1) in one transaction. */
 export async function createDevManualPage(
-  input: { slug: string; title: string; section?: string; summary?: string | null; contentMd: string; displayOrder?: number; isPublished?: boolean },
+  input: {
+    slug: string;
+    title: string;
+    section?: string;
+    summary?: string | null;
+    contentMd: string;
+    displayOrder?: number;
+    isPublished?: boolean;
+  },
   actor: ManualActor,
 ) {
   return db.transaction(async (tx) => {
@@ -112,7 +134,11 @@ export async function updateDevManualPage(
   actor: ManualActor,
 ): Promise<UpdateResult> {
   return db.transaction(async (tx): Promise<UpdateResult> => {
-    const [current] = await tx.select().from(devManualPages).where(eq(devManualPages.id, id)).limit(1);
+    const [current] = await tx
+      .select()
+      .from(devManualPages)
+      .where(eq(devManualPages.id, id))
+      .limit(1);
     if (!current) return { ok: false, reason: "not_found" };
     if (expectedLockVersion != null && current.editLockVersion !== expectedLockVersion) {
       return { ok: false, reason: "conflict", currentLockVersion: current.editLockVersion };
@@ -143,7 +169,11 @@ export async function updateDevManualPage(
       )
       .returning();
     if (updated.length === 0) {
-      const [fresh] = await tx.select({ v: devManualPages.editLockVersion }).from(devManualPages).where(eq(devManualPages.id, id)).limit(1);
+      const [fresh] = await tx
+        .select({ v: devManualPages.editLockVersion })
+        .from(devManualPages)
+        .where(eq(devManualPages.id, id))
+        .limit(1);
       if (!fresh) return { ok: false, reason: "not_found" };
       return { ok: false, reason: "conflict", currentLockVersion: fresh.v };
     }
@@ -187,7 +217,12 @@ export async function getDevManualRevision(pageId: string, version: number) {
 }
 
 /** Restore a prior revision's content as a new version (via updateDevManualPage). */
-export async function revertDevManualPage(pageId: string, version: number, expectedLockVersion: number | null, actor: ManualActor): Promise<UpdateResult> {
+export async function revertDevManualPage(
+  pageId: string,
+  version: number,
+  expectedLockVersion: number | null,
+  actor: ManualActor,
+): Promise<UpdateResult> {
   const rev = await getDevManualRevision(pageId, version);
   if (!rev) return { ok: false, reason: "not_found" };
   return updateDevManualPage(
@@ -199,7 +234,10 @@ export async function revertDevManualPage(pageId: string, version: number, expec
 }
 
 export async function deleteDevManualPage(id: string): Promise<boolean> {
-  const deleted = await db.delete(devManualPages).where(eq(devManualPages.id, id)).returning({ id: devManualPages.id });
+  const deleted = await db
+    .delete(devManualPages)
+    .where(eq(devManualPages.id, id))
+    .returning({ id: devManualPages.id });
   return deleted.length > 0;
 }
 
@@ -218,7 +256,15 @@ export async function searchDevManual(query: string) {
     ORDER BY rank DESC
     LIMIT 20
   `);
-  return result.rows as Array<{ id: string; slug: string; title: string; section: string; summary: string | null; rank: number; snippet: string }>;
+  return result.rows as Array<{
+    id: string;
+    slug: string;
+    title: string;
+    section: string;
+    summary: string | null;
+    rank: number;
+    snippet: string;
+  }>;
 }
 
 // ----- Structured data dictionary (agent-readable) -----
@@ -226,19 +272,32 @@ export async function searchDevManual(query: string) {
 /** All documented tables with their purpose + column count. */
 export async function listDictTables() {
   return db
-    .select({ tableName: devManualTableInfo.tableName, domainKey: devManualTableInfo.domainKey, purpose: devManualTableInfo.purpose, columnCount: devManualTableInfo.columnCount })
+    .select({
+      tableName: devManualTableInfo.tableName,
+      domainKey: devManualTableInfo.domainKey,
+      purpose: devManualTableInfo.purpose,
+      columnCount: devManualTableInfo.columnCount,
+    })
     .from(devManualTableInfo)
     .orderBy(asc(devManualTableInfo.domainKey), asc(devManualTableInfo.tableName));
 }
 
 /** A single table: purpose, FKs, sample queries, and its full column dictionary. */
 export async function getDictTable(tableName: string) {
-  const [info] = await db.select().from(devManualTableInfo).where(eq(devManualTableInfo.tableName, tableName)).limit(1);
+  const [info] = await db
+    .select()
+    .from(devManualTableInfo)
+    .where(eq(devManualTableInfo.tableName, tableName))
+    .limit(1);
   const columns = await db
     .select({
-      column: devManualDictionary.columnName, type: devManualDictionary.dataType, nullable: devManualDictionary.isNullable,
-      meaning: devManualDictionary.meaning, relationships: devManualDictionary.relationships,
-      allowedValues: devManualDictionary.allowedValues, notes: devManualDictionary.notes,
+      column: devManualDictionary.columnName,
+      type: devManualDictionary.dataType,
+      nullable: devManualDictionary.isNullable,
+      meaning: devManualDictionary.meaning,
+      relationships: devManualDictionary.relationships,
+      allowedValues: devManualDictionary.allowedValues,
+      notes: devManualDictionary.notes,
     })
     .from(devManualDictionary)
     .where(eq(devManualDictionary.tableName, tableName))
@@ -260,7 +319,18 @@ export async function searchDictColumns(query: string, table?: string) {
   if (!q && !table) return [];
   if (table && !q) {
     const t = await getDictTable(table);
-    return t ? t.columns.map((c: any) => ({ tableName: table, columnName: c.column, dataType: c.type, isNullable: c.nullable, meaning: c.meaning, relationships: c.relationships, allowedValues: c.allowedValues, rank: 1 })) : [];
+    return t
+      ? t.columns.map((c: any) => ({
+          tableName: table,
+          columnName: c.column,
+          dataType: c.type,
+          isNullable: c.nullable,
+          meaning: c.meaning,
+          relationships: c.relationships,
+          allowedValues: c.allowedValues,
+          rank: 1,
+        }))
+      : [];
   }
   // Combine exact/substring column-name matching (for "what is <field>?" lookups,
   // which full-text tokenization can miss) with full-text over meaning/relationships.
@@ -285,22 +355,32 @@ export async function searchDictColumns(query: string, table?: string) {
 
 /** Discovery doc telling an agent what this is and how to query it. */
 export async function getDictOverview() {
-  const [counts] = (await db.execute(sql`
+  const [counts] = (
+    await db.execute(sql`
     SELECT (SELECT count(*) FROM dev_manual_table_info) AS tables,
            (SELECT count(*) FROM dev_manual_dictionary) AS columns,
            (SELECT count(*) FROM dev_manual_pages WHERE is_published) AS pages
-  `)).rows as any[];
-  const domains = (await db.execute(sql`SELECT DISTINCT domain_key FROM dev_manual_table_info WHERE domain_key IS NOT NULL ORDER BY domain_key`)).rows.map((r: any) => r.domain_key);
+  `)
+  ).rows as any[];
+  const domains = (
+    await db.execute(
+      sql`SELECT DISTINCT domain_key FROM dev_manual_table_info WHERE domain_key IS NOT NULL ORDER BY domain_key`,
+    )
+  ).rows.map((r: any) => r.domain_key);
   return {
     name: "__APP_NAME__ — Developer Manual", // [EDIT] your app name,
-    description: "Authoritative definitions of the system's data model. Answer from this; do not guess field meanings, units, or relationships.",
-    maintenanceMandate: "KEEP THIS CURRENT. Any workflow (human or agent) that changes the database schema or system architecture — new/renamed/dropped tables or columns, changed relationships, new status values, or new subsystems — MUST update the affected developer-manual page(s) and data dictionary in the same change, before the work is considered done. Write to PUT /pages/:id (or POST a new page) and re-run scripts/seed-dev-manual.cjs to refresh the dictionary. Stale documentation makes every downstream agent answer wrong.",
+    description:
+      "Authoritative definitions of the system's data model. Answer from this; do not guess field meanings, units, or relationships.",
+    maintenanceMandate:
+      "KEEP THIS CURRENT. Any workflow (human or agent) that changes the database schema or system architecture — new/renamed/dropped tables or columns, changed relationships, new status values, or new subsystems — MUST update the affected developer-manual page(s) and data dictionary in the same change, before the work is considered done. Write to PUT /pages/:id (or POST a new page) and re-run scripts/seed-dev-manual.cjs to refresh the dictionary. Stale documentation makes every downstream agent answer wrong.",
     counts,
     domains,
     howToQuery: {
       list_tables: "GET /dictionary/tables",
-      get_table: "GET /dictionary/tables/{table_name} — purpose, foreign keys, sample queries, and every column's meaning/type/nullability/allowed-values",
-      find_field: "GET /dictionary/columns?q={text}  (or ?table={t}) — search a column/field by name or meaning across all tables",
+      get_table:
+        "GET /dictionary/tables/{table_name} — purpose, foreign keys, sample queries, and every column's meaning/type/nullability/allowed-values",
+      find_field:
+        "GET /dictionary/columns?q={text}  (or ?table={t}) — search a column/field by name or meaning across all tables",
       search_prose: "GET /search?q={text} — full-text search of the narrative manual pages",
       read_page: "GET /pages/{slug} — a domain's narrative page (Markdown)",
     },

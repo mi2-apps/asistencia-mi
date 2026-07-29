@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.js";
 import type { AuthUser } from "../middleware/auth.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -9,7 +9,12 @@ router.get("/me", requireAuth, (req, res) => {
   const user = req.user as AuthUser;
   res.json({
     success: true,
-    user: { id: user.id, username: user.username, role: user.role, permisos: user.permisos ?? null },
+    user: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      permisos: user.permisos ?? null,
+    },
   });
 });
 

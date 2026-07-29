@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Menu } from "lucide-react";
+import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 
 interface AppLayoutProps {
@@ -26,9 +26,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <span className="text-sm font-semibold">Control de Asistencia</span>
         </div>
 
-        <main className="flex-1 overflow-auto bg-background">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto bg-background">{children}</main>
       </div>
     </div>
   );

@@ -23,19 +23,25 @@ export async function listTables(): Promise<string[]> {
   try {
     const rows = await query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
-       WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name`);
+       WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name`,
+    );
     return rows.map((r) => r.table_name).filter((t) => !RESTRICTED.test(t));
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 /** Live column list (name + type) for one table — authoritative, from information_schema. */
 export async function describeTable(table: string): Promise<string> {
   const t = String(table ?? "").trim();
-  if (!/^[a-z_][a-z0-9_]*$/i.test(t) || RESTRICTED.test(t)) return `Unknown or restricted table: ${t}`;
+  if (!/^[a-z_][a-z0-9_]*$/i.test(t) || RESTRICTED.test(t))
+    return `Unknown or restricted table: ${t}`;
   try {
     const cols = await query<{ column_name: string; data_type: string }>(
       `SELECT column_name, data_type FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = ? ORDER BY ordinal_position`, [t]);
+       WHERE table_schema = 'public' AND table_name = ? ORDER BY ordinal_position`,
+      [t],
+    );
     if (!cols.length) return `Table "${t}" not found. Use list_tables to see available tables.`;
     const colList = cols.map((c) => `${c.column_name} (${c.data_type})`).join(", ");
     const note = describeSchema(t) !== SCHEMA_CARD ? `\nNotes: ${describeSchema(t)}` : "";
@@ -96,7 +102,10 @@ customer_id (PK), name, email, phone, state.
 /** Slice for the describe_schema tool (full card; optional table filter is best-effort). */
 export function describeSchema(table?: string): string {
   if (!table) return SCHEMA_CARD;
-  const re = new RegExp(`^### ${table.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\b.*?(?=\\n### |\\n## |$)`, "ims");
+  const re = new RegExp(
+    `^### ${table.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\b.*?(?=\\n### |\\n## |$)`,
+    "ims",
+  );
   const m = SCHEMA_CARD.match(re);
   return m ? m[0] : SCHEMA_CARD;
 }

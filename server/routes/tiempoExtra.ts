@@ -1,10 +1,10 @@
-import { Router } from "express";
 import { sql } from "drizzle-orm";
-import { db } from "../db.js";
+import { Router } from "express";
 import { tiempoExtra } from "../../shared/schema.js";
 import { tiempoExtraSchema, tiempoExtraUpdateSchema } from "../../shared/validators.js";
-import { requireAuth, requireModulo, getAllowedDepts, validateBody } from "../middleware/auth.js";
+import { db } from "../db.js";
 import type { AuthUser } from "../middleware/auth.js";
+import { getAllowedDepts, requireAuth, requireModulo, validateBody } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -18,7 +18,13 @@ router.get("/stats", requireAuth, requireModulo("tiempo_extra"), async (req, res
       return res.json({ success: true, stats: {} });
     }
 
-    const deptsFilter = depts === null ? sql`` : sql`AND c.departamento IN (${sql.join(depts.map((d) => sql`${d}`), sql`, `)})`;
+    const deptsFilter =
+      depts === null
+        ? sql``
+        : sql`AND c.departamento IN (${sql.join(
+            depts.map((d) => sql`${d}`),
+            sql`, `,
+          )})`;
 
     const rows = await db.execute(sql`
       SELECT
@@ -52,11 +58,15 @@ router.get("/semanas", requireAuth, requireModulo("tiempo_extra"), async (req, r
     }
 
     // Combine user's allowed depts with optional dept query param
-    const effectiveDept = deptQuery && (depts === null || depts.includes(deptQuery)) ? deptQuery : null;
+    const effectiveDept =
+      deptQuery && (depts === null || depts.includes(deptQuery)) ? deptQuery : null;
     const deptsFilter = effectiveDept
       ? sql`WHERE c.departamento = ${effectiveDept}`
       : depts !== null
-        ? sql`WHERE c.departamento IN (${sql.join(depts.map((d) => sql`${d}`), sql`, `)})`
+        ? sql`WHERE c.departamento IN (${sql.join(
+            depts.map((d) => sql`${d}`),
+            sql`, `,
+          )})`
         : sql``;
 
     const rows = await db.execute(sql`
@@ -86,7 +96,7 @@ router.get("/", requireAuth, requireModulo("tiempo_extra"), async (req, res, nex
     const depts = getAllowedDepts(user, "tiempo_extra");
     const deptQuery = req.query.departamento as string | undefined;
     const inicio = req.query.inicio as string | undefined;
-    const fin    = req.query.fin    as string | undefined;
+    const fin = req.query.fin as string | undefined;
 
     if (depts !== null && depts.length === 0) {
       return res.json({ success: true, registros: [] });
@@ -94,7 +104,8 @@ router.get("/", requireAuth, requireModulo("tiempo_extra"), async (req, res, nex
 
     // When a specific dept is requested, enforce access control.
     // When no dept is specified (Historial view), show all — everyone can see the full weekly overview.
-    const effectiveDept = deptQuery && (depts === null || depts.includes(deptQuery)) ? deptQuery : null;
+    const effectiveDept =
+      deptQuery && (depts === null || depts.includes(deptQuery)) ? deptQuery : null;
     const deptsFilter = deptQuery
       ? effectiveDept
         ? sql`AND c.departamento = ${effectiveDept}`
@@ -126,7 +137,7 @@ router.get("/", requireAuth, requireModulo("tiempo_extra"), async (req, res, nex
       WHERE TRUE
         ${deptsFilter}
         ${inicio ? sql`AND te.fecha >= ${inicio}::date` : sql``}
-        ${fin    ? sql`AND te.fecha <= ${fin}::date`    : sql``}
+        ${fin ? sql`AND te.fecha <= ${fin}::date` : sql``}
       ORDER BY te.fecha DESC, te.created_at DESC
     `);
     res.json({ success: true, registros: rows.rows });
@@ -138,19 +149,19 @@ router.get("/", requireAuth, requireModulo("tiempo_extra"), async (req, res, nex
 // POST /api/v1/tiempo-extra — crear registro
 router.post("/", requireAuth, validateBody(tiempoExtraSchema), async (req, res, next) => {
   try {
-    const data     = tiempoExtraSchema.parse(req.body);
+    const data = tiempoExtraSchema.parse(req.body);
     const username = (req.user as { username: string }).username;
 
     const [row] = await db
       .insert(tiempoExtra)
       .values({
         colaborador_id: data.colaborador_id,
-        fecha:          data.fecha,
-        hora_inicio:    data.hora_inicio,
-        hora_fin:       data.hora_fin,
-        horas_totales:  String(data.horas_totales),
-        area:           data.area,
-        motivo:         data.motivo,
+        fecha: data.fecha,
+        hora_inicio: data.hora_inicio,
+        hora_fin: data.hora_fin,
+        horas_totales: String(data.horas_totales),
+        area: data.area,
+        motivo: data.motivo,
         autorizado_por: data.autorizado_por,
         registrado_por: username,
       })
@@ -163,13 +174,18 @@ router.post("/", requireAuth, validateBody(tiempoExtraSchema), async (req, res, 
 });
 
 // PUT /api/v1/tiempo-extra/:id — editar registro
-router.put("/:id", requireAuth, requireModulo("tiempo_extra"), validateBody(tiempoExtraUpdateSchema), async (req, res, next) => {
-  try {
-    const id   = Number(req.params.id);
-    const data = tiempoExtraUpdateSchema.parse(req.body);
-    if (!id) return res.status(400).json({ success: false, message: "ID inválido" });
+router.put(
+  "/:id",
+  requireAuth,
+  requireModulo("tiempo_extra"),
+  validateBody(tiempoExtraUpdateSchema),
+  async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const data = tiempoExtraUpdateSchema.parse(req.body);
+      if (!id) return res.status(400).json({ success: false, message: "ID inválido" });
 
-    const rows = await db.execute(sql`
+      const rows = await db.execute(sql`
       UPDATE tiempo_extra
       SET fecha          = ${data.fecha}::date,
           hora_inicio    = ${data.hora_inicio},
@@ -181,14 +197,15 @@ router.put("/:id", requireAuth, requireModulo("tiempo_extra"), validateBody(tiem
       WHERE id = ${id}
       RETURNING id
     `);
-    if ((rows.rows as { id: number }[]).length === 0) {
-      return res.status(404).json({ success: false, message: "Registro no encontrado" });
+      if ((rows.rows as { id: number }[]).length === 0) {
+        return res.status(404).json({ success: false, message: "Registro no encontrado" });
+      }
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
     }
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // DELETE /api/v1/tiempo-extra/:id — eliminar (admin only)
 router.delete("/:id", requireAuth, async (req, res, next) => {

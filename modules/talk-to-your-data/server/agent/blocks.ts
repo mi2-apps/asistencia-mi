@@ -40,8 +40,10 @@ export interface ResolvedBlock extends Block {
 export function validateBlock(b: any): Block {
   if (!b || typeof b !== "object") throw new Error("block must be an object");
   const kind = b.kind;
-  if (!["kpi", "kpis", "chart", "table", "markdown"].includes(kind)) throw new Error(`bad block kind: ${kind}`);
-  if (kind !== "markdown" && (!b.sql || typeof b.sql !== "string")) throw new Error(`block kind '${kind}' requires sql`);
+  if (!["kpi", "kpis", "chart", "table", "markdown"].includes(kind))
+    throw new Error(`bad block kind: ${kind}`);
+  if (kind !== "markdown" && (!b.sql || typeof b.sql !== "string"))
+    throw new Error(`block kind '${kind}' requires sql`);
   if (kind === "markdown" && !b.md) throw new Error("markdown block requires md");
   // chart/table/kpi/kpis presentation fields (chartType, xKey, series, columns, valueKey, cards) are
   // OPTIONAL — if the model omits them they're inferred from the SQL result columns in resolveBlock.
@@ -51,7 +53,10 @@ export function validateBlock(b: any): Block {
 
 function isNumericVal(v: any): boolean {
   if (typeof v === "number") return true;
-  if (typeof v === "string") { const s = v.replace(/[$,%\s]/g, ""); return s !== "" && !Number.isNaN(Number(s)); }
+  if (typeof v === "string") {
+    const s = v.replace(/[$,%\s]/g, "");
+    return s !== "" && !Number.isNaN(Number(s));
+  }
   return false;
 }
 
@@ -69,9 +74,13 @@ function inferSpec(b: Block, rows: Record<string, any>[]): Block {
       const s = numKeys.filter((k) => k !== out.xKey);
       out.series = (s.length ? s : keys.filter((k) => k !== out.xKey)).map((k) => ({ key: k }));
     }
-    if (!out.chartType) out.chartType = /date|month|day|year|week|time|created|_on|period/i.test(String(out.xKey)) ? "line" : "bar";
+    if (!out.chartType)
+      out.chartType = /date|month|day|year|week|time|created|_on|period/i.test(String(out.xKey))
+        ? "line"
+        : "bar";
   } else if (b.kind === "table") {
-    if (!Array.isArray(out.columns) || !out.columns.length) out.columns = keys.map((k) => ({ key: k }));
+    if (!Array.isArray(out.columns) || !out.columns.length)
+      out.columns = keys.map((k) => ({ key: k }));
   } else if (b.kind === "kpi") {
     if (!out.valueKey) out.valueKey = numKeys[0] ?? keys[0];
   } else if (b.kind === "kpis") {
@@ -89,7 +98,7 @@ export async function resolveBlock(b: Block, maxRows = 2000): Promise<ResolvedBl
   try {
     const res = await runAgentSql(b.sql, maxRows);
     const spec = inferSpec(b, res.rows);
-    const data = spec.kind === "kpi" || spec.kind === "kpis" ? res.rows[0] ?? {} : res.rows;
+    const data = spec.kind === "kpi" || spec.kind === "kpis" ? (res.rows[0] ?? {}) : res.rows;
     return { ...spec, data, rowCount: res.rowCount };
   } catch (e: any) {
     return { ...b, data: null, rowCount: 0, error: String(e?.message ?? e) };

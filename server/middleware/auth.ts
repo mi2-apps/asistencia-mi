@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 export interface AuthUser {
   id: number;
@@ -15,7 +15,9 @@ declare global {
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated || !req.isAuthenticated()) {
-    return res.status(401).json({ success: false, code: "NO_AUTH", message: "Autenticación requerida" });
+    return res
+      .status(401)
+      .json({ success: false, code: "NO_AUTH", message: "Autenticación requerida" });
   }
   next();
 }
@@ -23,7 +25,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const user = req.user as AuthUser | undefined;
   if (!user || user.role !== "admin") {
-    return res.status(403).json({ success: false, code: "FORBIDDEN", message: "Se requieren permisos de administrador" });
+    return res.status(403).json({
+      success: false,
+      code: "FORBIDDEN",
+      message: "Se requieren permisos de administrador",
+    });
   }
   next();
 }
@@ -31,10 +37,15 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 export function requireModulo(modulo: string) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = req.user as AuthUser | undefined;
-    if (!user) return res.status(401).json({ success: false, code: "NO_AUTH", message: "Autenticación requerida" });
+    if (!user)
+      return res
+        .status(401)
+        .json({ success: false, code: "NO_AUTH", message: "Autenticación requerida" });
     if (user.role === "admin") return next();
     if (!user.permisos?.[modulo]) {
-      return res.status(403).json({ success: false, code: "FORBIDDEN", message: "No tienes acceso a este módulo" });
+      return res
+        .status(403)
+        .json({ success: false, code: "FORBIDDEN", message: "No tienes acceso a este módulo" });
     }
     next();
   };
@@ -53,7 +64,12 @@ export function getAllowedDepts(user: AuthUser, modulo: string): string[] | null
   return depts;
 }
 
-export function validateBody(schema: { safeParse: (data: unknown) => { success: boolean; error?: { issues: Array<{ message: string }> } } }) {
+export function validateBody(schema: {
+  safeParse: (data: unknown) => {
+    success: boolean;
+    error?: { issues: Array<{ message: string }> };
+  };
+}) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {

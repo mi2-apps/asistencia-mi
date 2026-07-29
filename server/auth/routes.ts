@@ -1,17 +1,21 @@
-import { Router } from "express";
-import passport from "passport";
 import bcrypt from "bcrypt";
-import { rateLimit } from "express-rate-limit";
 import { eq } from "drizzle-orm";
-import { db } from "../db.js";
+import { Router } from "express";
+import { rateLimit } from "express-rate-limit";
+import passport from "passport";
 import { usuarios } from "../../shared/schema.js";
+import { db } from "../db.js";
 
 const SSO_READY = !!(process.env.OIDC_CLIENT_ID && process.env.OIDC_CLIENT_SECRET);
 
 const loginLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 30,
-  message: { success: false, code: "RATE_LIMIT", message: "Demasiados intentos. Intente en 10 minutos." },
+  message: {
+    success: false,
+    code: "RATE_LIMIT",
+    message: "Demasiados intentos. Intente en 10 minutos.",
+  },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -127,10 +131,17 @@ router.post("/dev-login", loginLimiter, async (req, res, next) => {
   if (SSO_READY) return res.status(404).send("Not found");
   try {
     const { username, password } = req.body as { username?: string; password?: string };
-    if (!username || !password) return res.redirect("/auth/login?error=Usuario+y+contraseña+requeridos");
+    if (!username || !password)
+      return res.redirect("/auth/login?error=Usuario+y+contraseña+requeridos");
 
     const [user] = await db
-      .select({ id: usuarios.id, username: usuarios.username, password_hash: usuarios.password_hash, role: usuarios.role, permisos: usuarios.permisos })
+      .select({
+        id: usuarios.id,
+        username: usuarios.username,
+        password_hash: usuarios.password_hash,
+        role: usuarios.role,
+        permisos: usuarios.permisos,
+      })
       .from(usuarios)
       .where(eq(usuarios.username, username.trim().toLowerCase()));
 
@@ -139,10 +150,13 @@ router.post("/dev-login", loginLimiter, async (req, res, next) => {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.redirect("/auth/login?error=Usuario+o+contraseña+incorrectos");
 
-    req.login({ id: user.id, username: user.username, role: user.role, permisos: user.permisos ?? null }, (err) => {
-      if (err) return next(err);
-      res.redirect("/");
-    });
+    req.login(
+      { id: user.id, username: user.username, role: user.role, permisos: user.permisos ?? null },
+      (err) => {
+        if (err) return next(err);
+        res.redirect("/");
+      },
+    );
   } catch (err) {
     next(err);
   }
@@ -153,9 +167,11 @@ router.get(
   "/callback",
   (req, res, next) => {
     if (!SSO_READY) return res.redirect("/auth/login");
-    passport.authenticate("openidconnect", { failureRedirect: "/auth/login?error=Error+de+autenticaci%C3%B3n" })(req, res, next);
+    passport.authenticate("openidconnect", {
+      failureRedirect: "/auth/login?error=Error+de+autenticaci%C3%B3n",
+    })(req, res, next);
   },
-  (_req, res) => res.redirect("/")
+  (_req, res) => res.redirect("/"),
 );
 
 // GET /auth/logout

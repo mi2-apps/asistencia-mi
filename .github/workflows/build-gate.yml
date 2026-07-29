@@ -25,3 +25,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build (fails on tsc/vite errors)
         run: pnpm run build
+      - name: Lint (Biome — warn-only during rollout)
+        continue-on-error: true
+        run: pnpm run lint

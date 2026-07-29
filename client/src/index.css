@@ -10,15 +10,15 @@
     --card-foreground: 215 25% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 10%;
-    --primary: 215 65% 11%;        /* #0A1929 navy */
+    --primary: 215 65% 11%; /* #0A1929 navy */
     --primary-foreground: 0 0% 98%;
     --secondary: 215 20% 95%;
     --secondary-foreground: 215 25% 10%;
     --muted: 215 15% 92%;
     --muted-foreground: 215 10% 55%;
-    --accent: 152 72% 40%;          /* #10B981 green */
+    --accent: 152 72% 40%; /* #10B981 green */
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 84% 60%;       /* #EF4444 red */
+    --destructive: 0 84% 60%; /* #EF4444 red */
     --destructive-foreground: 0 0% 98%;
     --border: 215 15% 88%;
     --input: 215 15% 88%;
