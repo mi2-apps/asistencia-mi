@@ -26,8 +26,18 @@ export interface SemanaPDF {
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES_LARGOS = [
-  "Enero","Febrero","Marzo","Abril","Mayo","Junio",
-  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 const NAVY = [27, 58, 107] as [number, number, number];
@@ -47,13 +57,16 @@ function ddmm(iso: string): string {
 
 function cargarImagenBase64(url: string): Promise<string> {
   return fetch(url)
-    .then(r => r.blob())
-    .then(blob => new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    }));
+    .then((r) => r.blob())
+    .then(
+      (blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        }),
+    );
 }
 
 export async function generarPDFTiempoExtra(
@@ -69,7 +82,7 @@ export async function generarPDFTiempoExtra(
   // ── Logo MI Technologies ──
   // Dimensiones reales de logo.png ≈ 550×185 px → ratio 2.97:1
   const logoW = 42;
-  const logoH = Math.round(logoW / 2.97);  // ≈ 14 mm
+  const logoH = Math.round(logoW / 2.97); // ≈ 14 mm
   try {
     const logoData = await cargarImagenBase64("/assets/logo.png");
     doc.addImage(logoData, "PNG", L, 8, logoW, logoH);
@@ -96,7 +109,8 @@ export async function generarPDFTiempoExtra(
   doc.setTextColor(...GRAY);
   doc.text(
     `Semana ${semana.week}: ${sd} ${MESES_LARGOS[sm - 1]} ${sy} - ${ed} ${MESES_LARGOS[em - 1]} ${sy}`,
-    titleX, 21,
+    titleX,
+    21,
   );
 
   // ── Fecha de elaboración ──
@@ -123,13 +137,13 @@ export async function generarPDFTiempoExtra(
   doc.setLineWidth(0.3);
   doc.roundedRect(L, cardY, W - 2 * L, cardH, 2, 2, "S");
 
-  const autorizado = registros.find(r => r.autorizado_por)?.autorizado_por ?? "—";
-  const cantPersonal = new Set(registros.map(r => r.colaborador_id)).size;
+  const autorizado = registros.find((r) => r.autorizado_por)?.autorizado_por ?? "—";
+  const cantPersonal = new Set(registros.map((r) => r.colaborador_id)).size;
   const cardCols = [
-    { label: "ÁREA",            value: departamento },
-    { label: "TURNO",           value: "—" },
-    { label: "CANT. PERSONAL",  value: String(cantPersonal) },
-    { label: "AUTORIZADO POR",  value: autorizado },
+    { label: "ÁREA", value: departamento },
+    { label: "TURNO", value: "—" },
+    { label: "CANT. PERSONAL", value: String(cantPersonal) },
+    { label: "AUTORIZADO POR", value: autorizado },
   ];
   const colW = (W - 2 * L) / cardCols.length;
   cardCols.forEach((col, i) => {
@@ -194,43 +208,131 @@ export async function generarPDFTiempoExtra(
 
   const head = [
     [
-      { content: "INFORMACIÓN DEL COLABORADOR", colSpan: 4, styles: { halign: "center" as const, fillColor: NAVY, textColor: [255,255,255] as [number,number,number], fontStyle: "bold" as const, fontSize: 9 } },
-      { content: "CANTIDAD DE HORAS POR DÍA",   colSpan: 7, styles: { halign: "center" as const, fillColor: NAVY, textColor: [255,255,255] as [number,number,number], fontStyle: "bold" as const, fontSize: 9 } },
-      { content: "TOTAL",                        colSpan: 1, styles: { halign: "center" as const, fillColor: NAVY, textColor: [255,255,255] as [number,number,number], fontStyle: "bold" as const, fontSize: 9 } },
+      {
+        content: "INFORMACIÓN DEL COLABORADOR",
+        colSpan: 4,
+        styles: {
+          halign: "center" as const,
+          fillColor: NAVY,
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: "bold" as const,
+          fontSize: 9,
+        },
+      },
+      {
+        content: "CANTIDAD DE HORAS POR DÍA",
+        colSpan: 7,
+        styles: {
+          halign: "center" as const,
+          fillColor: NAVY,
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: "bold" as const,
+          fontSize: 9,
+        },
+      },
+      {
+        content: "TOTAL",
+        colSpan: 1,
+        styles: {
+          halign: "center" as const,
+          fillColor: NAVY,
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: "bold" as const,
+          fontSize: 9,
+        },
+      },
     ],
     [
-      { content: "No. Emp",        styles: { halign: "center" as const, fillColor: BLUE, textColor: [255,255,255] as [number,number,number], fontStyle: "bold" as const, fontSize: 8 } },
-      { content: "Depto",          styles: { halign: "center" as const, fillColor: BLUE, textColor: [255,255,255] as [number,number,number], fontStyle: "bold" as const, fontSize: 8 } },
-      { content: "Nombre Completo",styles: { halign: "left"   as const, fillColor: BLUE, textColor: [255,255,255] as [number,number,number], fontStyle: "bold" as const, fontSize: 8 } },
-      { content: "Motivo",         styles: { halign: "left"   as const, fillColor: BLUE, textColor: [255,255,255] as [number,number,number], fontStyle: "bold" as const, fontSize: 8 } },
+      {
+        content: "No. Emp",
+        styles: {
+          halign: "center" as const,
+          fillColor: BLUE,
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: "bold" as const,
+          fontSize: 8,
+        },
+      },
+      {
+        content: "Depto",
+        styles: {
+          halign: "center" as const,
+          fillColor: BLUE,
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: "bold" as const,
+          fontSize: 8,
+        },
+      },
+      {
+        content: "Nombre Completo",
+        styles: {
+          halign: "left" as const,
+          fillColor: BLUE,
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: "bold" as const,
+          fontSize: 8,
+        },
+      },
+      {
+        content: "Motivo",
+        styles: {
+          halign: "left" as const,
+          fillColor: BLUE,
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: "bold" as const,
+          fontSize: 8,
+        },
+      },
       ...dayHeads,
-      { content: "Horas",          styles: { halign: "center" as const, fillColor: BLUE, textColor: [255,255,255] as [number,number,number], fontStyle: "bold" as const, fontSize: 8 } },
+      {
+        content: "Horas",
+        styles: {
+          halign: "center" as const,
+          fillColor: BLUE,
+          textColor: [255, 255, 255] as [number, number, number],
+          fontStyle: "bold" as const,
+          fontSize: 8,
+        },
+      },
     ],
   ];
 
-  const body = Array.from(byColab.values()).map(e => [
+  const body = Array.from(byColab.values()).map((e) => [
     e.numero_empleado,
     e.departamento,
     e.fullname,
     e.motivo,
-    ...dias.map(d => {
+    ...dias.map((d) => {
       const h = e.horasPorDia.get(d);
       return h !== undefined ? h.toFixed(2) : "-";
     }),
     { content: e.total.toFixed(2), styles: { fontStyle: "bold" as const, textColor: NAVY } },
   ]);
 
-  const foot = [[
-    {
-      content: "SUMA TOTAL:",
-      colSpan: 11,
-      styles: { halign: "right" as const, fontStyle: "bold" as const, fontSize: 9, fillColor: [249, 250, 251] as [number,number,number] },
-    },
-    {
-      content: sumaTotal.toFixed(2),
-      styles: { halign: "center" as const, fontStyle: "bold" as const, fontSize: 10, textColor: NAVY, fillColor: [249, 250, 251] as [number,number,number] },
-    },
-  ]];
+  const foot = [
+    [
+      {
+        content: "SUMA TOTAL:",
+        colSpan: 11,
+        styles: {
+          halign: "right" as const,
+          fontStyle: "bold" as const,
+          fontSize: 9,
+          fillColor: [249, 250, 251] as [number, number, number],
+        },
+      },
+      {
+        content: sumaTotal.toFixed(2),
+        styles: {
+          halign: "center" as const,
+          fontStyle: "bold" as const,
+          fontSize: 10,
+          textColor: NAVY,
+          fillColor: [249, 250, 251] as [number, number, number],
+        },
+      },
+    ],
+  ];
 
   autoTable(doc, {
     startY: tableY,
@@ -238,27 +340,34 @@ export async function generarPDFTiempoExtra(
     body,
     foot,
     theme: "grid",
-    styles: { fontSize: 8, cellPadding: 3, lineColor: [220, 220, 220] as [number,number,number], lineWidth: 0.3, textColor: [30, 30, 30] as [number,number,number] },
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+      lineColor: [220, 220, 220] as [number, number, number],
+      lineWidth: 0.3,
+      textColor: [30, 30, 30] as [number, number, number],
+    },
     columnStyles: {
-      0:  { halign: "center", cellWidth: 18 },
-      1:  { halign: "center", cellWidth: 22 },
-      2:  { cellWidth: 42 },
-      3:  { cellWidth: 45 },
-      4:  { halign: "center", cellWidth: 14 },
-      5:  { halign: "center", cellWidth: 14 },
-      6:  { halign: "center", cellWidth: 14 },
-      7:  { halign: "center", cellWidth: 14 },
-      8:  { halign: "center", cellWidth: 14 },
-      9:  { halign: "center", cellWidth: 14 },
+      0: { halign: "center", cellWidth: 18 },
+      1: { halign: "center", cellWidth: 22 },
+      2: { cellWidth: 42 },
+      3: { cellWidth: 45 },
+      4: { halign: "center", cellWidth: 14 },
+      5: { halign: "center", cellWidth: 14 },
+      6: { halign: "center", cellWidth: 14 },
+      7: { halign: "center", cellWidth: 14 },
+      8: { halign: "center", cellWidth: 14 },
+      9: { halign: "center", cellWidth: 14 },
       10: { halign: "center", cellWidth: 14 },
       11: { halign: "center", cellWidth: 18 },
     },
     margin: { left: L, right: L },
-    alternateRowStyles: { fillColor: [249, 250, 251] as [number,number,number] },
+    alternateRowStyles: { fillColor: [249, 250, 251] as [number, number, number] },
   });
 
   // Posición después de la tabla
-  const afterTable = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 14;
+  const afterTable =
+    (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 14;
 
   // ── Firmas ──
   const sigLabels = ["RESPONSABLE DE ÁREA", "AUTORIZA EL PAGO", "CAPITAL HUMANO"];
@@ -278,10 +387,9 @@ export async function generarPDFTiempoExtra(
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(180, 180, 180);
-  doc.text(
-    "Documento generado automáticamente por QualityHub • MI Technologies",
-    W / 2, H - 8, { align: "center" },
-  );
+  doc.text("Documento generado automáticamente por QualityHub • MI Technologies", W / 2, H - 8, {
+    align: "center",
+  });
 
   // ── Guardar ──
   doc.save(`TiempoExtra_${departamento}_${semana.inicio}_${semana.fin}.pdf`);

@@ -8,14 +8,25 @@ import { RENDER_TOKEN } from "./render-token.js";
 let browserP: Promise<any> | null = null;
 async function getBrowser(): Promise<any> {
   const { chromium } = await import("playwright"); // dynamic: a missing browser can't crash boot
-  const launch = () => chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const launch = () =>
+    chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
   if (!browserP) browserP = launch();
   let b = await browserP;
-  if (!b?.isConnected?.()) { browserP = launch(); b = await browserP; }
+  if (!b?.isConnected?.()) {
+    browserP = launch();
+    b = await browserP;
+  }
   return b;
 }
 
-export interface RenderResult { checkable: boolean; ok: boolean; visuals: number; errorBlocks: number; jsError?: string; screenshot?: string; }
+export interface RenderResult {
+  checkable: boolean;
+  ok: boolean;
+  visuals: number;
+  errorBlocks: number;
+  jsError?: string;
+  screenshot?: string;
+}
 
 export async function checkPageRender(slug: string): Promise<RenderResult> {
   const port = process.env.PORT || 7000;
@@ -23,14 +34,18 @@ export async function checkPageRender(slug: string): Promise<RenderResult> {
   let ctx: any, page: any;
   try {
     const b = await getBrowser();
-    ctx = await b.newContext({ viewport: { width: 1440, height: 1200 }, extraHTTPHeaders: { "x-render-token": RENDER_TOKEN } });
+    ctx = await b.newContext({
+      viewport: { width: 1440, height: 1200 },
+      extraHTTPHeaders: { "x-render-token": RENDER_TOKEN },
+    });
     page = await ctx.newPage();
     const jsErrors: string[] = [];
     page.on("pageerror", (e: any) => jsErrors.push(String(e?.message ?? e).slice(0, 160)));
     await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
     await page.waitForTimeout(2500); // let recharts paint
     const stats = await page.evaluate(() => ({
-      visuals: document.querySelectorAll(".recharts-wrapper, svg.recharts-surface, table, canvas").length,
+      visuals: document.querySelectorAll(".recharts-wrapper, svg.recharts-surface, table, canvas")
+        .length,
       errorBlocks: document.querySelectorAll(".text-red-300, .text-red-400").length,
       bodyLen: (document.body.innerText || "").length,
     }));
@@ -40,13 +55,32 @@ export async function checkPageRender(slug: string): Promise<RenderResult> {
       fs.mkdirSync("/tmp/render-checks", { recursive: true });
       screenshot = `/tmp/render-checks/${slug}.png`;
       await page.screenshot({ path: screenshot, fullPage: true });
-    } catch { screenshot = undefined; }
+    } catch {
+      screenshot = undefined;
+    }
     // A page is "broken" if it crashed (JS error), rendered an error block, or came up blank.
     const ok = jsErrors.length === 0 && stats.errorBlocks === 0 && stats.bodyLen > 150;
-    return { checkable: true, ok, visuals: stats.visuals, errorBlocks: stats.errorBlocks, jsError: jsErrors[0], screenshot };
+    return {
+      checkable: true,
+      ok,
+      visuals: stats.visuals,
+      errorBlocks: stats.errorBlocks,
+      jsError: jsErrors[0],
+      screenshot,
+    };
   } catch (e: any) {
-    return { checkable: false, ok: false, visuals: 0, errorBlocks: 0, jsError: String(e?.message ?? e).slice(0, 160) };
+    return {
+      checkable: false,
+      ok: false,
+      visuals: 0,
+      errorBlocks: 0,
+      jsError: String(e?.message ?? e).slice(0, 160),
+    };
   } finally {
-    try { await ctx?.close(); } catch { /* ignore */ }
+    try {
+      await ctx?.close();
+    } catch {
+      /* ignore */
+    }
   }
 }

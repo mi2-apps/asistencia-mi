@@ -3,11 +3,7 @@
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
     "ignoreUnknown": true,
-    "includes": [
-      "**",
-      "!drizzle/meta",
-      "!modules/developer-manual/client/App-routes-snippet.tsx"
-    ]
+    "includes": ["**", "!drizzle/meta", "!modules/developer-manual/client/App-routes-snippet.tsx"]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "linter": {

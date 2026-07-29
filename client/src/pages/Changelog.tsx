@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { Sparkles, X } from "lucide-react";
 import { cn } from "@client/lib/utils";
+import { Sparkles, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ChangelogEntry {
   version: string;
@@ -80,7 +80,7 @@ export default function Changelog() {
             key={entry.version}
             className={cn(
               "rounded-xl border p-5",
-              entry.highlight ? "border-brand-yellow/50 bg-yellow-50/40" : "border-border bg-card"
+              entry.highlight ? "border-brand-yellow/50 bg-yellow-50/40" : "border-border bg-card",
             )}
           >
             <div className="flex items-center gap-3 mb-3">
@@ -138,7 +138,10 @@ export function WhatsNewModal() {
             <Sparkles className="text-brand-yellow" size={18} />
             <h3 className="font-semibold">¡Novedades en v{latest.version}!</h3>
           </div>
-          <button onClick={dismiss} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={dismiss}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
             <X size={18} />
           </button>
         </div>

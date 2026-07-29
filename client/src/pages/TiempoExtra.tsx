@@ -1,15 +1,32 @@
-import { useState, useMemo, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, ChevronDown, Clock, Download, Edit2, History, Search, Trash2, X, CheckCircle } from "lucide-react";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
-import { DEPARTAMENTOS_LIST, DEPT_COLORS } from "@shared/constants";
-import { useAuthStore } from "@client/stores/authStore";
-import { tiempoExtraSchema, tiempoExtraUpdateSchema, type TiempoExtraInput, type TiempoExtraUpdateInput } from "@shared/validators";
-import { cn, toLocalISO } from "@client/lib/utils";
 import { generarPDFTiempoExtra } from "@client/lib/pdfTiempoExtra";
+import { cn, toLocalISO } from "@client/lib/utils";
+import { useAuthStore } from "@client/stores/authStore";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DEPARTAMENTOS_LIST, DEPT_COLORS } from "@shared/constants";
+import {
+  type TiempoExtraInput,
+  type TiempoExtraUpdateInput,
+  tiempoExtraSchema,
+  tiempoExtraUpdateSchema,
+} from "@shared/validators";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle,
+  ChevronDown,
+  Clock,
+  Download,
+  Edit2,
+  History,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 
 interface ColabRow {
   id: number;
@@ -53,20 +70,21 @@ interface SemanaItem {
 
 type Vista = "departamentos" | "opciones" | "registrar" | "historial-semanas" | "historial-detalle";
 
-const inputCls = "w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring";
+const inputCls =
+  "w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring";
 const labelCls = "text-sm font-medium block mb-1";
 
 function calcularHoras(inicio: string, fin: string): number | null {
   if (!inicio || !fin) return null;
   const [ih, im] = inicio.split(":").map(Number);
   const [fh, fm] = fin.split(":").map(Number);
-  const mins = (fh * 60 + fm) - (ih * 60 + im);
+  const mins = fh * 60 + fm - (ih * 60 + im);
   if (mins <= 0) return null;
   return Math.round((mins / 60) * 100) / 100;
 }
 
-const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-const DIAS  = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 function formatFecha(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
@@ -87,13 +105,13 @@ export default function TiempoExtra() {
     return [...DEPARTAMENTOS_LIST].filter((d) => allowed.includes(d));
   }, [allowedDepts]);
 
-  const [vista, setVista]             = useState<Vista>("departamentos");
-  const [deptActual, setDept]         = useState<string | null>(null);
-  const [busqueda, setBusqueda]       = useState("");
-  const [colabSel, setColabSel]       = useState<ColabRow | null>(null);
-  const [dropdownOpen, setDropdown]   = useState(false);
-  const [exito, setExito]             = useState(false);
-  const [semanaActual, setSemana]     = useState<SemanaItem | null>(null);
+  const [vista, setVista] = useState<Vista>("departamentos");
+  const [deptActual, setDept] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [colabSel, setColabSel] = useState<ColabRow | null>(null);
+  const [dropdownOpen, setDropdown] = useState(false);
+  const [exito, setExito] = useState(false);
+  const [semanaActual, setSemana] = useState<SemanaItem | null>(null);
   const [busqDetalle, setBusqDetalle] = useState("");
   const [diasColapsados, setDiasColapsados] = useState<Set<string>>(new Set());
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -102,16 +120,18 @@ export default function TiempoExtra() {
   // Stats para las tarjetas de departamentos
   const { data: statsData } = useQuery<{ stats: Record<string, number> }>({
     queryKey: ["tiempo-extra-stats"],
-    queryFn: () => fetch("/api/v1/tiempo-extra/stats", { credentials: "include" }).then(r => r.json()),
+    queryFn: () =>
+      fetch("/api/v1/tiempo-extra/stats", { credentials: "include" }).then((r) => r.json()),
   });
 
   // Colaboradores activos — keyed by department so React Query re-fetches when dept changes
   const { data: colabsData } = useQuery<{ colaboradores: ColabRow[] }>({
     queryKey: ["colaboradores-activos", deptActual],
-    queryFn: () => fetch(
-      `/api/v1/colaboradores?activo=true&modulo=tiempo_extra${deptActual ? `&departamento=${encodeURIComponent(deptActual)}` : ""}`,
-      { credentials: "include" }
-    ).then(r => r.json()),
+    queryFn: () =>
+      fetch(
+        `/api/v1/colaboradores?activo=true&modulo=tiempo_extra${deptActual ? `&departamento=${encodeURIComponent(deptActual)}` : ""}`,
+        { credentials: "include" },
+      ).then((r) => r.json()),
     enabled: vista === "registrar" && !!deptActual,
     staleTime: 0,
   });
@@ -119,10 +139,11 @@ export default function TiempoExtra() {
   // Semanas del departamento seleccionado
   const { data: semanasData, isLoading: semanasLoading } = useQuery<{ semanas: SemanaItem[] }>({
     queryKey: ["tiempo-extra-semanas", deptActual],
-    queryFn: () => fetch(
-      `/api/v1/tiempo-extra/semanas${deptActual ? `?departamento=${encodeURIComponent(deptActual)}` : ""}`,
-      { credentials: "include" }
-    ).then(r => r.json()),
+    queryFn: () =>
+      fetch(
+        `/api/v1/tiempo-extra/semanas${deptActual ? `?departamento=${encodeURIComponent(deptActual)}` : ""}`,
+        { credentials: "include" },
+      ).then((r) => r.json()),
     enabled: vista === "historial-semanas",
   });
 
@@ -136,7 +157,9 @@ export default function TiempoExtra() {
         params.set("inicio", semanaActual.inicio);
         params.set("fin", semanaActual.fin);
       }
-      return fetch(`/api/v1/tiempo-extra?${params.toString()}`, { credentials: "include" }).then(r => r.json());
+      return fetch(`/api/v1/tiempo-extra?${params.toString()}`, { credentials: "include" }).then(
+        (r) => r.json(),
+      );
     },
     enabled: vista === "historial-detalle" && semanaActual !== null,
   });
@@ -156,16 +179,18 @@ export default function TiempoExtra() {
   });
 
   const horaInicio = form.watch("hora_inicio");
-  const horaFin    = form.watch("hora_fin");
+  const horaFin = form.watch("hora_fin");
 
   useEffect(() => {
     const h = calcularHoras(horaInicio, horaFin);
     if (h !== null) form.setValue("horas_totales", h);
   }, [horaInicio, horaFin, form]);
 
-  const editForm = useForm<TiempoExtraUpdateInput>({ resolver: zodResolver(tiempoExtraUpdateSchema) });
+  const editForm = useForm<TiempoExtraUpdateInput>({
+    resolver: zodResolver(tiempoExtraUpdateSchema),
+  });
   const editHoraInicio = editForm.watch("hora_inicio");
-  const editHoraFin    = editForm.watch("hora_fin");
+  const editHoraFin = editForm.watch("hora_fin");
 
   useEffect(() => {
     const h = calcularHoras(editHoraInicio, editHoraFin);
@@ -180,7 +205,10 @@ export default function TiempoExtra() {
         credentials: "include",
         body: JSON.stringify(data),
       });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.message ?? "Error al guardar"); }
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error(e.message ?? "Error al guardar");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tiempo-extra-detalle"] });
@@ -191,8 +219,14 @@ export default function TiempoExtra() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const r = await fetch(`/api/v1/tiempo-extra/${id}`, { method: "DELETE", credentials: "include" });
-      if (!r.ok && r.status !== 204) { const e = await r.json(); throw new Error(e.message ?? "Error al eliminar"); }
+      const r = await fetch(`/api/v1/tiempo-extra/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!r.ok && r.status !== 204) {
+        const e = await r.json();
+        throw new Error(e.message ?? "Error al eliminar");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tiempo-extra-detalle"] });
@@ -204,12 +238,12 @@ export default function TiempoExtra() {
   const abrirEditar = (r: RegistroRow) => {
     setEditandoId(r.id);
     editForm.reset({
-      fecha:          r.fecha,
-      hora_inicio:    r.hora_inicio,
-      hora_fin:       r.hora_fin,
-      horas_totales:  Number(r.horas_totales),
-      area:           r.area,
-      motivo:         r.motivo,
+      fecha: r.fecha,
+      hora_inicio: r.hora_inicio,
+      hora_fin: r.hora_fin,
+      horas_totales: Number(r.horas_totales),
+      area: r.area,
+      motivo: r.motivo,
       autorizado_por: r.autorizado_por,
     });
   };
@@ -233,7 +267,16 @@ export default function TiempoExtra() {
       setExito(true);
       setColabSel(null);
       setBusqueda("");
-      form.reset({ colaborador_id: 0, fecha: toLocalISO(), hora_inicio: "", hora_fin: "", horas_totales: 0, area: "", motivo: "", autorizado_por: "" });
+      form.reset({
+        colaborador_id: 0,
+        fecha: toLocalISO(),
+        hora_inicio: "",
+        hora_fin: "",
+        horas_totales: 0,
+        area: "",
+        motivo: "",
+        autorizado_por: "",
+      });
       setTimeout(() => setExito(false), 3000);
     },
   });
@@ -242,9 +285,10 @@ export default function TiempoExtra() {
     if (!busqueda.trim()) return [];
     const q = busqueda.toLowerCase();
     return (colabsData?.colaboradores ?? [])
-      .filter(c =>
-        (c.fullname ?? `${c.nombre} ${c.apellido}`).toLowerCase().includes(q) ||
-        c.numero_empleado?.toLowerCase().includes(q)
+      .filter(
+        (c) =>
+          (c.fullname ?? `${c.nombre} ${c.apellido}`).toLowerCase().includes(q) ||
+          c.numero_empleado?.toLowerCase().includes(q),
       )
       .slice(0, 8);
   }, [busqueda, colabsData]);
@@ -253,13 +297,14 @@ export default function TiempoExtra() {
     const lista = detalleData?.registros ?? [];
     if (!busqDetalle.trim()) return lista;
     const q = busqDetalle.toLowerCase();
-    return lista.filter(r =>
-      r.fullname.toLowerCase().includes(q) ||
-      r.numero_empleado?.toLowerCase().includes(q)
+    return lista.filter(
+      (r) => r.fullname.toLowerCase().includes(q) || r.numero_empleado?.toLowerCase().includes(q),
     );
   }, [detalleData, busqDetalle]);
 
-  useEffect(() => { setDiasColapsados(new Set()); }, [semanaActual]);
+  useEffect(() => {
+    setDiasColapsados(new Set());
+  }, [semanaActual]);
 
   const registrosPorDia = useMemo(() => {
     const grupos = new Map<string, RegistroRow[]>();
@@ -288,20 +333,26 @@ export default function TiempoExtra() {
 
   const irAtras = () => {
     if (vista === "registrar") {
-      setVista("opciones"); setColabSel(null); setBusqueda(""); form.reset();
+      setVista("opciones");
+      setColabSel(null);
+      setBusqueda("");
+      form.reset();
     } else if (vista === "opciones") {
-      setVista("departamentos"); setDept(null);
+      setVista("departamentos");
+      setDept(null);
     } else if (vista === "historial-semanas") {
       setVista("opciones");
     } else if (vista === "historial-detalle") {
-      setVista("historial-semanas"); setSemana(null); setBusqDetalle("");
+      setVista("historial-semanas");
+      setSemana(null);
+      setBusqDetalle("");
     }
   };
 
   const titulo = (() => {
-    if (vista === "departamentos")     return "Tiempo Extra";
-    if (vista === "opciones")          return deptActual!;
-    if (vista === "registrar")         return `Registrar — ${deptActual}`;
+    if (vista === "departamentos") return "Tiempo Extra";
+    if (vista === "opciones") return deptActual!;
+    if (vista === "registrar") return `Registrar — ${deptActual}`;
     if (vista === "historial-semanas") return `Historial — ${deptActual}`;
     if (vista === "historial-detalle" && semanaActual)
       return `Semana ${semanaActual.week} · ${formatFecha(semanaActual.inicio)} – ${formatFecha(semanaActual.fin)}`;
@@ -314,31 +365,42 @@ export default function TiempoExtra() {
       <div className="mb-6">
         <div className="flex items-center gap-3">
           {vista !== "departamentos" && (
-            <button onClick={irAtras} className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+            <button
+              onClick={irAtras}
+              className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+            >
               <ArrowLeft size={18} />
             </button>
           )}
           <h2 className="text-lg md:text-xl font-semibold leading-snug">{titulo}</h2>
-          {vista === "historial-detalle" && semanaActual && (detalleData?.registros?.length ?? 0) > 0 && (
+          {vista === "historial-detalle" &&
+            semanaActual &&
+            (detalleData?.registros?.length ?? 0) > 0 && (
+              <button
+                onClick={() =>
+                  void generarPDFTiempoExtra(detalleData!.registros, semanaActual, deptActual!)
+                }
+                className="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium transition-colors flex-shrink-0"
+              >
+                <Download size={15} />
+                Descargar PDF
+              </button>
+            )}
+        </div>
+        {/* Botón PDF en móvil — debajo del título */}
+        {vista === "historial-detalle" &&
+          semanaActual &&
+          (detalleData?.registros?.length ?? 0) > 0 && (
             <button
-              onClick={() => void generarPDFTiempoExtra(detalleData!.registros, semanaActual, deptActual!)}
-              className="ml-auto hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium transition-colors flex-shrink-0"
+              onClick={() =>
+                void generarPDFTiempoExtra(detalleData!.registros, semanaActual, deptActual!)
+              }
+              className="md:hidden mt-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium transition-colors"
             >
               <Download size={15} />
               Descargar PDF
             </button>
           )}
-        </div>
-        {/* Botón PDF en móvil — debajo del título */}
-        {vista === "historial-detalle" && semanaActual && (detalleData?.registros?.length ?? 0) > 0 && (
-          <button
-            onClick={() => void generarPDFTiempoExtra(detalleData!.registros, semanaActual, deptActual!)}
-            className="md:hidden mt-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium transition-colors"
-          >
-            <Download size={15} />
-            Descargar PDF
-          </button>
-        )}
       </div>
 
       {/* ── Vista: Departamentos ── */}
@@ -350,7 +412,10 @@ export default function TiempoExtra() {
               nombre={dept}
               color={DEPT_COLORS[dept] ?? "#888"}
               stats={{ total: statsData?.stats?.[dept] ?? 0 }}
-              onClick={() => { setDept(dept); setVista("opciones"); }}
+              onClick={() => {
+                setDept(dept);
+                setVista("opciones");
+              }}
             />
           ))}
         </div>
@@ -384,7 +449,6 @@ export default function TiempoExtra() {
       {/* ── Vista: Registrar ── */}
       {vista === "registrar" && (
         <div className="max-w-lg space-y-5">
-
           {exito && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
               <CheckCircle size={16} />
@@ -396,21 +460,42 @@ export default function TiempoExtra() {
             <label className={labelCls}>Colaborador *</label>
             {colabSel ? (
               <div className="flex items-center gap-3 px-3 py-2 border border-input rounded-md bg-muted/30">
-                <Avatar nombre={colabSel.nombre} apellido={colabSel.apellido} fotoPerfil={colabSel.foto_perfil} size="sm" />
+                <Avatar
+                  nombre={colabSel.nombre}
+                  apellido={colabSel.apellido}
+                  fotoPerfil={colabSel.foto_perfil}
+                  size="sm"
+                />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{colabSel.fullname ?? `${colabSel.nombre} ${colabSel.apellido}`}</p>
-                  <p className="text-xs text-muted-foreground">{colabSel.puesto ?? "—"} · {colabSel.numero_empleado ?? "Sin nómina"}</p>
+                  <p className="text-sm font-medium truncate">
+                    {colabSel.fullname ?? `${colabSel.nombre} ${colabSel.apellido}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {colabSel.puesto ?? "—"} · {colabSel.numero_empleado ?? "Sin nómina"}
+                  </p>
                 </div>
-                <button onClick={() => { setColabSel(null); form.setValue("colaborador_id", 0); }} className="text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={() => {
+                    setColabSel(null);
+                    form.setValue("colaborador_id", 0);
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
                   <X size={15} />
                 </button>
               </div>
             ) : (
               <div className="relative">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Search
+                  size={14}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                />
                 <input
                   value={busqueda}
-                  onChange={(e) => { setBusqueda(e.target.value); setDropdown(true); }}
+                  onChange={(e) => {
+                    setBusqueda(e.target.value);
+                    setDropdown(true);
+                  }}
                   onFocus={() => setDropdown(true)}
                   placeholder="Buscar por nombre o nómina..."
                   className={cn(inputCls, "pl-8")}
@@ -425,10 +510,19 @@ export default function TiempoExtra() {
                         onClick={() => seleccionarColab(c)}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted text-left transition-colors"
                       >
-                        <Avatar nombre={c.nombre} apellido={c.apellido} fotoPerfil={c.foto_perfil} size="sm" />
+                        <Avatar
+                          nombre={c.nombre}
+                          apellido={c.apellido}
+                          fotoPerfil={c.foto_perfil}
+                          size="sm"
+                        />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{c.fullname ?? `${c.nombre} ${c.apellido}`}</p>
-                          <p className="text-xs text-muted-foreground">{c.puesto ?? "—"} · {c.numero_empleado ?? "Sin nómina"}</p>
+                          <p className="text-sm font-medium truncate">
+                            {c.fullname ?? `${c.nombre} ${c.apellido}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {c.puesto ?? "—"} · {c.numero_empleado ?? "Sin nómina"}
+                          </p>
                         </div>
                       </button>
                     ))}
@@ -451,19 +545,31 @@ export default function TiempoExtra() {
               <div>
                 <label className={labelCls}>Fecha *</label>
                 <input type="date" {...form.register("fecha")} className={inputCls} />
-                {form.formState.errors.fecha && <p className="text-xs text-destructive mt-1">{form.formState.errors.fecha.message}</p>}
+                {form.formState.errors.fecha && (
+                  <p className="text-xs text-destructive mt-1">
+                    {form.formState.errors.fecha.message}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>Hora Inicio *</label>
                   <input type="time" {...form.register("hora_inicio")} className={inputCls} />
-                  {form.formState.errors.hora_inicio && <p className="text-xs text-destructive mt-1">{form.formState.errors.hora_inicio.message}</p>}
+                  {form.formState.errors.hora_inicio && (
+                    <p className="text-xs text-destructive mt-1">
+                      {form.formState.errors.hora_inicio.message}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className={labelCls}>Hora Fin *</label>
                   <input type="time" {...form.register("hora_fin")} className={inputCls} />
-                  {form.formState.errors.hora_fin && <p className="text-xs text-destructive mt-1">{form.formState.errors.hora_fin.message}</p>}
+                  {form.formState.errors.hora_fin && (
+                    <p className="text-xs text-destructive mt-1">
+                      {form.formState.errors.hora_fin.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -485,20 +591,47 @@ export default function TiempoExtra() {
 
               <div>
                 <label className={labelCls}>Área donde trabajó *</label>
-                <input type="text" {...form.register("area")} placeholder="Ej. Almacén, Línea 3..." className={inputCls} />
-                {form.formState.errors.area && <p className="text-xs text-destructive mt-1">{form.formState.errors.area.message}</p>}
+                <input
+                  type="text"
+                  {...form.register("area")}
+                  placeholder="Ej. Almacén, Línea 3..."
+                  className={inputCls}
+                />
+                {form.formState.errors.area && (
+                  <p className="text-xs text-destructive mt-1">
+                    {form.formState.errors.area.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className={labelCls}>Motivo *</label>
-                <textarea {...form.register("motivo")} rows={3} placeholder="Describe el motivo del tiempo extra..." className={cn(inputCls, "resize-none")} />
-                {form.formState.errors.motivo && <p className="text-xs text-destructive mt-1">{form.formState.errors.motivo.message}</p>}
+                <textarea
+                  {...form.register("motivo")}
+                  rows={3}
+                  placeholder="Describe el motivo del tiempo extra..."
+                  className={cn(inputCls, "resize-none")}
+                />
+                {form.formState.errors.motivo && (
+                  <p className="text-xs text-destructive mt-1">
+                    {form.formState.errors.motivo.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className={labelCls}>Autorizado por *</label>
-                <input type="text" {...form.register("autorizado_por")} placeholder="Nombre del supervisor o gerente" className={inputCls} />
-                {form.formState.errors.autorizado_por && <p className="text-xs text-destructive mt-1">{form.formState.errors.autorizado_por.message}</p>}
+                <input
+                  type="text"
+                  {...form.register("autorizado_por")}
+                  placeholder="Nombre del supervisor o gerente"
+                  className={inputCls}
+                />
+                {form.formState.errors.autorizado_por && (
+                  <p className="text-xs text-destructive mt-1">
+                    {form.formState.errors.autorizado_por.message}
+                  </p>
+                )}
               </div>
 
               {mutation.isError && (
@@ -520,9 +653,7 @@ export default function TiempoExtra() {
       {/* ── Vista: Historial — lista de semanas ── */}
       {vista === "historial-semanas" && (
         <div className="max-w-2xl space-y-3">
-          {semanasLoading && (
-            <p className="text-sm text-muted-foreground">Cargando semanas...</p>
-          )}
+          {semanasLoading && <p className="text-sm text-muted-foreground">Cargando semanas...</p>}
           {!semanasLoading && (semanasData?.semanas ?? []).length === 0 && (
             <div className="py-12 text-center text-muted-foreground text-sm">
               Sin registros en este departamento.
@@ -531,7 +662,10 @@ export default function TiempoExtra() {
           {(semanasData?.semanas ?? []).map((s) => (
             <button
               key={`${s.year}-${s.week}`}
-              onClick={() => { setSemana(s); setVista("historial-detalle"); }}
+              onClick={() => {
+                setSemana(s);
+                setVista("historial-detalle");
+              }}
               className="w-full flex items-center justify-between px-5 py-4 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all group text-left"
             >
               <div>
@@ -547,7 +681,10 @@ export default function TiempoExtra() {
                 <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-semibold">
                   {s.total_horas} hrs
                 </span>
-                <ArrowRight size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                <ArrowRight
+                  size={15}
+                  className="text-muted-foreground group-hover:text-primary transition-colors"
+                />
               </div>
             </button>
           ))}
@@ -558,7 +695,10 @@ export default function TiempoExtra() {
       {vista === "historial-detalle" && (
         <div className="max-w-3xl space-y-4">
           <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Search
+              size={14}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            />
             <input
               value={busqDetalle}
               onChange={(e) => setBusqDetalle(e.target.value)}
@@ -567,9 +707,7 @@ export default function TiempoExtra() {
             />
           </div>
 
-          {detalleLoading && (
-            <p className="text-sm text-muted-foreground">Cargando registros...</p>
-          )}
+          {detalleLoading && <p className="text-sm text-muted-foreground">Cargando registros...</p>}
           {!detalleLoading && registrosFiltrados.length === 0 && (
             <div className="py-12 text-center text-muted-foreground text-sm">
               Sin registros para esta semana.
@@ -578,158 +716,270 @@ export default function TiempoExtra() {
 
           {registrosPorDia.map(([fecha, registros], i) => {
             const colapsado = diasColapsados.has(fecha);
-            const toggleDia = () => setDiasColapsados(prev => {
-              const next = new Set(prev);
-              if (next.has(fecha)) next.delete(fecha); else next.add(fecha);
-              return next;
-            });
+            const toggleDia = () =>
+              setDiasColapsados((prev) => {
+                const next = new Set(prev);
+                if (next.has(fecha)) next.delete(fecha);
+                else next.add(fecha);
+                return next;
+              });
             return (
-            <div key={fecha}>
-              {/* Separador de día — clickeable */}
-              <button
-                onClick={toggleDia}
-                className={cn("flex items-center gap-2 w-full text-left mb-3", i > 0 && "mt-5")}
-              >
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md shrink-0">
-                  <span className="text-xs font-semibold text-foreground">{formatDiaHeader(fecha)}</span>
-                  <ChevronDown size={12} className={cn("text-muted-foreground transition-transform duration-200", colapsado && "-rotate-90")} />
-                </div>
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {registros.length} {registros.length === 1 ? "registro" : "registros"}
-                </span>
-              </button>
-
-              {/* Tarjetas del día */}
-              {!colapsado && <div className="space-y-3">
-                {registros.map((r) => (
-                  <div key={r.id} className="relative p-4 rounded-xl border border-border bg-card">
-
-                    {/* Botones de acción (siempre top-right) */}
-                    {editandoId !== r.id && (
-                      <div className="absolute top-3 right-3 flex gap-0.5">
-                        <button
-                          onClick={() => abrirEditar(r)}
-                          className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                          title="Editar"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          onClick={() => { if (confirm("¿Eliminar este registro de tiempo extra?")) deleteMutation.mutate(r.id); }}
-                          className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* ── Formulario de edición inline ── */}
-                    {editandoId === r.id ? (
-                      <form onSubmit={editForm.handleSubmit((d) => editMutation.mutate({ id: r.id, data: d }))} className="space-y-3">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
-                          <p className="text-sm font-semibold">{r.fullname}</p>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="col-span-1">
-                            <label className="text-xs font-medium block mb-1">Fecha</label>
-                            <input type="date" {...editForm.register("fecha")} className={inputCls} />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium block mb-1">Inicio</label>
-                            <input type="time" {...editForm.register("hora_inicio")} className={inputCls} />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium block mb-1">Fin</label>
-                            <input type="time" {...editForm.register("hora_fin")} className={inputCls} />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium block mb-1">Área</label>
-                          <input type="text" {...editForm.register("area")} className={inputCls} />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium block mb-1">Motivo</label>
-                          <textarea {...editForm.register("motivo")} rows={2} className={cn(inputCls, "resize-none")} />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium block mb-1">Autorizado por</label>
-                          <input type="text" {...editForm.register("autorizado_por")} className={inputCls} />
-                        </div>
-                        {editMutation.error && (
-                          <p className="text-xs text-destructive">{(editMutation.error as Error).message}</p>
-                        )}
-                        <div className="flex gap-2 pt-1">
-                          <button type="button" onClick={() => setEditandoId(null)} className="px-4 py-1.5 text-sm rounded-md border border-border hover:bg-muted transition-colors">
-                            Cancelar
-                          </button>
-                          <button type="submit" disabled={editMutation.isPending} className="px-4 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">
-                            {editMutation.isPending ? "Guardando..." : "Guardar"}
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <>
-                        {/* ── Móvil ── */}
-                        <div className="md:hidden pr-14">
-                          <div className="flex items-start gap-3">
-                            <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="text-sm font-semibold leading-tight">{r.fullname}</p>
-                                <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full shrink-0">
-                                  {r.horas_totales} hrs
-                                </span>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-0.5">{r.puesto ?? "—"} · {r.numero_empleado ?? "Sin nómina"}</p>
-                              <p className="text-xs text-muted-foreground">{r.hora_inicio} → {r.hora_fin}</p>
-                            </div>
-                          </div>
-                          <div className="mt-2.5 pt-2.5 border-t border-border space-y-1 text-xs">
-                            <div className="grid grid-cols-2 gap-x-3">
-                              <p><span className="font-medium text-foreground">Área:</span> <span className="text-muted-foreground">{r.area}</span></p>
-                              <p><span className="font-medium text-foreground">Autorizado:</span> <span className="text-muted-foreground">{r.autorizado_por}</span></p>
-                            </div>
-                            <p><span className="font-medium text-foreground">Motivo:</span> <span className="text-muted-foreground">{r.motivo}</span></p>
-                            <p className="text-muted-foreground/60">Registrado: {r.registrado_por}</p>
-                          </div>
-                        </div>
-
-                        {/* ── Desktop ── */}
-                        <div className="hidden md:flex gap-4 pr-16">
-                          <div className="flex items-start gap-3 w-52 shrink-0">
-                            <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="md" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold leading-tight truncate">{r.fullname}</p>
-                              <p className="text-xs text-muted-foreground truncate mt-0.5">{r.puesto ?? "—"}</p>
-                              <p className="text-xs text-muted-foreground">{r.numero_empleado ?? "Sin nómina"}</p>
-                            </div>
-                          </div>
-                          <div className="w-px bg-border shrink-0" />
-                          <div className="flex-1 min-w-0 space-y-1.5 text-sm">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium">{formatFecha(r.fecha)}</span>
-                              <span className="text-muted-foreground">·</span>
-                              <span>{r.hora_inicio} → {r.hora_fin}</span>
-                              <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full">
-                                {r.horas_totales} hrs
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Área:</span> {r.area}</p>
-                            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Motivo:</span> {r.motivo}</p>
-                            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Autorizado por:</span> {r.autorizado_por}</p>
-                            <p className="text-xs text-muted-foreground/60">Registrado por: {r.registrado_por}</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
+              <div key={fecha}>
+                {/* Separador de día — clickeable */}
+                <button
+                  onClick={toggleDia}
+                  className={cn("flex items-center gap-2 w-full text-left mb-3", i > 0 && "mt-5")}
+                >
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-md shrink-0">
+                    <span className="text-xs font-semibold text-foreground">
+                      {formatDiaHeader(fecha)}
+                    </span>
+                    <ChevronDown
+                      size={12}
+                      className={cn(
+                        "text-muted-foreground transition-transform duration-200",
+                        colapsado && "-rotate-90",
+                      )}
+                    />
                   </div>
-                ))}
-              </div>}
-            </div>
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {registros.length} {registros.length === 1 ? "registro" : "registros"}
+                  </span>
+                </button>
+
+                {/* Tarjetas del día */}
+                {!colapsado && (
+                  <div className="space-y-3">
+                    {registros.map((r) => (
+                      <div
+                        key={r.id}
+                        className="relative p-4 rounded-xl border border-border bg-card"
+                      >
+                        {/* Botones de acción (siempre top-right) */}
+                        {editandoId !== r.id && (
+                          <div className="absolute top-3 right-3 flex gap-0.5">
+                            <button
+                              onClick={() => abrirEditar(r)}
+                              className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                              title="Editar"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm("¿Eliminar este registro de tiempo extra?"))
+                                  deleteMutation.mutate(r.id);
+                              }}
+                              className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* ── Formulario de edición inline ── */}
+                        {editandoId === r.id ? (
+                          <form
+                            onSubmit={editForm.handleSubmit((d) =>
+                              editMutation.mutate({ id: r.id, data: d }),
+                            )}
+                            className="space-y-3"
+                          >
+                            <div className="flex items-center gap-3 mb-3">
+                              <Avatar
+                                nombre={r.nombre}
+                                apellido={r.apellido}
+                                fotoPerfil={r.foto_perfil}
+                                size="sm"
+                              />
+                              <p className="text-sm font-semibold">{r.fullname}</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="col-span-1">
+                                <label className="text-xs font-medium block mb-1">Fecha</label>
+                                <input
+                                  type="date"
+                                  {...editForm.register("fecha")}
+                                  className={inputCls}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium block mb-1">Inicio</label>
+                                <input
+                                  type="time"
+                                  {...editForm.register("hora_inicio")}
+                                  className={inputCls}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium block mb-1">Fin</label>
+                                <input
+                                  type="time"
+                                  {...editForm.register("hora_fin")}
+                                  className={inputCls}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Área</label>
+                              <input
+                                type="text"
+                                {...editForm.register("area")}
+                                className={inputCls}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Motivo</label>
+                              <textarea
+                                {...editForm.register("motivo")}
+                                rows={2}
+                                className={cn(inputCls, "resize-none")}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">
+                                Autorizado por
+                              </label>
+                              <input
+                                type="text"
+                                {...editForm.register("autorizado_por")}
+                                className={inputCls}
+                              />
+                            </div>
+                            {editMutation.error && (
+                              <p className="text-xs text-destructive">
+                                {(editMutation.error as Error).message}
+                              </p>
+                            )}
+                            <div className="flex gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditandoId(null)}
+                                className="px-4 py-1.5 text-sm rounded-md border border-border hover:bg-muted transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={editMutation.isPending}
+                                className="px-4 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                              >
+                                {editMutation.isPending ? "Guardando..." : "Guardar"}
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <>
+                            {/* ── Móvil ── */}
+                            <div className="md:hidden pr-14">
+                              <div className="flex items-start gap-3">
+                                <Avatar
+                                  nombre={r.nombre}
+                                  apellido={r.apellido}
+                                  fotoPerfil={r.foto_perfil}
+                                  size="md"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="text-sm font-semibold leading-tight">
+                                      {r.fullname}
+                                    </p>
+                                    <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full shrink-0">
+                                      {r.horas_totales} hrs
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {r.puesto ?? "—"} · {r.numero_empleado ?? "Sin nómina"}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {r.hora_inicio} → {r.hora_fin}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-2.5 pt-2.5 border-t border-border space-y-1 text-xs">
+                                <div className="grid grid-cols-2 gap-x-3">
+                                  <p>
+                                    <span className="font-medium text-foreground">Área:</span>{" "}
+                                    <span className="text-muted-foreground">{r.area}</span>
+                                  </p>
+                                  <p>
+                                    <span className="font-medium text-foreground">Autorizado:</span>{" "}
+                                    <span className="text-muted-foreground">
+                                      {r.autorizado_por}
+                                    </span>
+                                  </p>
+                                </div>
+                                <p>
+                                  <span className="font-medium text-foreground">Motivo:</span>{" "}
+                                  <span className="text-muted-foreground">{r.motivo}</span>
+                                </p>
+                                <p className="text-muted-foreground/60">
+                                  Registrado: {r.registrado_por}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* ── Desktop ── */}
+                            <div className="hidden md:flex gap-4 pr-16">
+                              <div className="flex items-start gap-3 w-52 shrink-0">
+                                <Avatar
+                                  nombre={r.nombre}
+                                  apellido={r.apellido}
+                                  fotoPerfil={r.foto_perfil}
+                                  size="md"
+                                />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold leading-tight truncate">
+                                    {r.fullname}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                    {r.puesto ?? "—"}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {r.numero_empleado ?? "Sin nómina"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="w-px bg-border shrink-0" />
+                              <div className="flex-1 min-w-0 space-y-1.5 text-sm">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium">{formatFecha(r.fecha)}</span>
+                                  <span className="text-muted-foreground">·</span>
+                                  <span>
+                                    {r.hora_inicio} → {r.hora_fin}
+                                  </span>
+                                  <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full">
+                                    {r.horas_totales} hrs
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  <span className="font-medium text-foreground">Área:</span>{" "}
+                                  {r.area}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  <span className="font-medium text-foreground">Motivo:</span>{" "}
+                                  {r.motivo}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  <span className="font-medium text-foreground">
+                                    Autorizado por:
+                                  </span>{" "}
+                                  {r.autorizado_por}
+                                </p>
+                                <p className="text-xs text-muted-foreground/60">
+                                  Registrado por: {r.registrado_por}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>

@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
-import { ArrowLeft, Search, Trash2 } from "lucide-react";
 import { Avatar } from "@client/components/ui/Avatar";
 import { DeptCard } from "@client/components/ui/DeptCard";
-import { DEPARTAMENTOS_LIST, DEPT_COLORS, TIPOS_INASISTENCIA } from "@shared/constants";
-import { useAuthStore } from "@client/stores/authStore";
 import { cn, toLocalISO } from "@client/lib/utils";
+import { useAuthStore } from "@client/stores/authStore";
+import { DEPARTAMENTOS_LIST, DEPT_COLORS, TIPOS_INASISTENCIA } from "@shared/constants";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Search, Trash2 } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ReporteRow {
   colaborador_id: number;
@@ -30,20 +30,25 @@ async function fetchReporte(): Promise<{ reporte: ReporteRow[] }> {
 
 export default function Asistencia() {
   const { t } = useTranslation();
-  const [deptActual, setDeptActual]       = useState<string | null>(null);
-  const [busqueda, setBusqueda]           = useState("");
-  const [inasistenciaModal, setModal]     = useState<ReporteRow | null>(null);
-  const [tipoSel, setTipoSel]             = useState("");
-  const [notas, setNotas]                 = useState("");
-  const { user, allowedDepts }            = useAuthStore();
+  const [deptActual, setDeptActual] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [inasistenciaModal, setModal] = useState<ReporteRow | null>(null);
+  const [tipoSel, setTipoSel] = useState("");
+  const [notas, setNotas] = useState("");
+  const { user, allowedDepts } = useAuthStore();
   const deptCards = useMemo(() => {
     const allowed = allowedDepts("asistencia");
     if (allowed === null) return [...DEPARTAMENTOS_LIST];
     return [...DEPARTAMENTOS_LIST].filter((d) => allowed.includes(d));
   }, [allowedDepts]);
-  const qc                                = useQueryClient();
+  const qc = useQueryClient();
 
-  const { data, isLoading } = useQuery({ queryKey: ["asistencia"], queryFn: fetchReporte, refetchInterval: 60_000, staleTime: 30_000 });
+  const { data, isLoading } = useQuery({
+    queryKey: ["asistencia"],
+    queryFn: fetchReporte,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
   const reporte = data?.reporte ?? [];
 
   const deptStats = useMemo(() => {
@@ -69,7 +74,7 @@ export default function Asistencia() {
           r.fullname.toLowerCase().includes(q) ||
           r.puesto?.toLowerCase().includes(q) ||
           r.numero_empleado?.toLowerCase().includes(q) ||
-          r.turno?.toLowerCase().includes(q)
+          r.turno?.toLowerCase().includes(q),
       );
     }
     return lista;
@@ -90,7 +95,8 @@ export default function Asistencia() {
       else s.inasistencias++;
     }
     return Array.from(map.entries()).sort(([a], [b]) => {
-      const ia = TURNO_ORDER.indexOf(a), ib = TURNO_ORDER.indexOf(b);
+      const ia = TURNO_ORDER.indexOf(a),
+        ib = TURNO_ORDER.indexOf(b);
       if (ia === -1 && ib === -1) return a.localeCompare(b);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
@@ -117,7 +123,12 @@ export default function Asistencia() {
   const todosRegistrados = deptActual && filas.length === 0 && totalDept > 0;
 
   const registrarMutation = useMutation({
-    mutationFn: async ({ persona_id, estado, tipo_inasistencia, notas }: {
+    mutationFn: async ({
+      persona_id,
+      estado,
+      tipo_inasistencia,
+      notas,
+    }: {
       persona_id: number;
       estado: string;
       tipo_inasistencia?: string;
@@ -147,8 +158,12 @@ export default function Asistencia() {
           ...old,
           reporte: old.reporte.map((r) =>
             r.colaborador_id === persona_id
-              ? { ...r, estado: estado === "Presente" ? "Presente" : "Inasistencia", tipo_inasistencia: tipo_inasistencia ?? null }
-              : r
+              ? {
+                  ...r,
+                  estado: estado === "Presente" ? "Presente" : "Inasistencia",
+                  tipo_inasistencia: tipo_inasistencia ?? null,
+                }
+              : r,
           ),
         };
       });
@@ -192,17 +207,25 @@ export default function Asistencia() {
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {deptActual && (
             <button
-              onClick={() => { setDeptActual(null); setBusqueda(""); }}
+              onClick={() => {
+                setDeptActual(null);
+                setBusqueda("");
+              }}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
             >
               <ArrowLeft size={15} />
             </button>
           )}
-          <h2 className="text-lg md:text-xl font-semibold truncate">{deptActual ?? t("asistencia:title")}</h2>
+          <h2 className="text-lg md:text-xl font-semibold truncate">
+            {deptActual ?? t("asistencia:title")}
+          </h2>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={14}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
@@ -212,7 +235,9 @@ export default function Asistencia() {
           </div>
           {user?.role === "admin" && (
             <button
-              onClick={() => { if (confirm(t("asistencia:clearDayConfirm"))) limpiarDiaMutation.mutate(); }}
+              onClick={() => {
+                if (confirm(t("asistencia:clearDayConfirm"))) limpiarDiaMutation.mutate();
+              }}
               className="flex items-center gap-1.5 text-xs text-destructive hover:bg-destructive/10 px-2.5 py-1.5 rounded-md border border-destructive/30 transition-colors whitespace-nowrap"
             >
               <Trash2 size={13} /> {t("asistencia:clearDay")}
@@ -224,12 +249,17 @@ export default function Asistencia() {
       {deptActual && statsPorTurno.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {statsPorTurno.map(([turno, s]) => (
-            <div key={turno} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">
+            <div
+              key={turno}
+              className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs"
+            >
               <span className="font-semibold text-foreground">{turno}</span>
               <span className="text-muted-foreground">·</span>
               <span className="text-green-600 font-medium">{s.presentes} Presentes</span>
               <span className="text-red-500 font-medium">{s.inasistencias} Inasistencias</span>
-              {s.pendientes > 0 && <span className="text-amber-500 font-medium">{s.pendientes} Pendientes</span>}
+              {s.pendientes > 0 && (
+                <span className="text-amber-500 font-medium">{s.pendientes} Pendientes</span>
+              )}
             </div>
           ))}
         </div>
@@ -244,7 +274,11 @@ export default function Asistencia() {
                 key={dept}
                 nombre={dept}
                 color={DEPT_COLORS[dept] ?? "#888"}
-                stats={{ presentes: s.presentes, inasistencias: s.inasistencias, sinRegistro: s.sinRegistro }}
+                stats={{
+                  presentes: s.presentes,
+                  inasistencias: s.inasistencias,
+                  sinRegistro: s.sinRegistro,
+                }}
                 onClick={() => setDeptActual(dept)}
               />
             );
@@ -257,10 +291,14 @@ export default function Asistencia() {
               {todosRegistrados ? (
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-2xl">✓</span>
-                  <span className="font-medium text-green-600">{t("asistencia:allRegistered")}</span>
+                  <span className="font-medium text-green-600">
+                    {t("asistencia:allRegistered")}
+                  </span>
                   <span className="text-xs">{t("asistencia:allRegisteredDesc")}</span>
                 </div>
-              ) : t("asistencia:noEmployees")}
+              ) : (
+                t("asistencia:noEmployees")
+              )}
             </div>
           ) : (
             <>
@@ -269,15 +307,25 @@ export default function Asistencia() {
                 {filasPorTurno.map(([turno, rows]) => (
                   <div key={turno}>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{turno}</span>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {turno}
+                      </span>
                       <span className="text-xs text-muted-foreground">({rows.length})</span>
                       <div className="flex-1 h-px bg-border" />
                     </div>
                     <div className="space-y-2">
                       {rows.map((r) => (
-                        <div key={r.colaborador_id} className="rounded-xl border border-border bg-card p-3">
+                        <div
+                          key={r.colaborador_id}
+                          className="rounded-xl border border-border bg-card p-3"
+                        >
                           <div className="flex items-center gap-3 mb-3">
-                            <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
+                            <Avatar
+                              nombre={r.nombre}
+                              apellido={r.apellido}
+                              fotoPerfil={r.foto_perfil}
+                              size="sm"
+                            />
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-sm leading-tight">{r.fullname}</p>
                               <p className="text-xs text-muted-foreground truncate">
@@ -287,23 +335,42 @@ export default function Asistencia() {
                             {r.estado && (
                               <div className="flex-shrink-0">
                                 {r.estado === "Presente" ? (
-                                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
+                                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                                    {t("asistencia:present")}
+                                  </span>
                                 ) : (
-                                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">{r.tipo_inasistencia ?? t("asistencia:absence")}</span>
+                                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+                                    {r.tipo_inasistencia ?? t("asistencia:absence")}
+                                  </span>
                                 )}
                               </div>
                             )}
                           </div>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => registrarMutation.mutate({ persona_id: r.colaborador_id, estado: "Presente" })}
-                              className={cn("flex-1 py-1.5 text-xs rounded-md border transition-colors", r.estado === "Presente" ? "bg-green-500 text-white border-green-500" : "border-green-500 text-green-600 hover:bg-green-50")}
+                              onClick={() =>
+                                registrarMutation.mutate({
+                                  persona_id: r.colaborador_id,
+                                  estado: "Presente",
+                                })
+                              }
+                              className={cn(
+                                "flex-1 py-1.5 text-xs rounded-md border transition-colors",
+                                r.estado === "Presente"
+                                  ? "bg-green-500 text-white border-green-500"
+                                  : "border-green-500 text-green-600 hover:bg-green-50",
+                              )}
                             >
                               {t("asistencia:present")}
                             </button>
                             <button
                               onClick={() => abrirModal(r)}
-                              className={cn("flex-1 py-1.5 text-xs rounded-md border transition-colors", r.estado === "Inasistencia" ? "bg-red-500 text-white border-red-500" : "border-red-400 text-red-500 hover:bg-red-50")}
+                              className={cn(
+                                "flex-1 py-1.5 text-xs rounded-md border transition-colors",
+                                r.estado === "Inasistencia"
+                                  ? "bg-red-500 text-white border-red-500"
+                                  : "border-red-400 text-red-500 hover:bg-red-50",
+                              )}
                             >
                               {t("asistencia:absence")}
                             </button>
@@ -320,11 +387,21 @@ export default function Asistencia() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/40 text-left">
-                      <th className="px-4 py-3 font-medium text-muted-foreground">{t("asistencia:employee")}</th>
-                      <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:payroll")}</th>
-                      <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:position")}</th>
-                      <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:status")}</th>
-                      <th className="px-3 py-3 font-medium text-muted-foreground">{t("asistencia:actions")}</th>
+                      <th className="px-4 py-3 font-medium text-muted-foreground">
+                        {t("asistencia:employee")}
+                      </th>
+                      <th className="px-3 py-3 font-medium text-muted-foreground">
+                        {t("asistencia:payroll")}
+                      </th>
+                      <th className="px-3 py-3 font-medium text-muted-foreground">
+                        {t("asistencia:position")}
+                      </th>
+                      <th className="px-3 py-3 font-medium text-muted-foreground">
+                        {t("asistencia:status")}
+                      </th>
+                      <th className="px-3 py-3 font-medium text-muted-foreground">
+                        {t("asistencia:actions")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -332,40 +409,75 @@ export default function Asistencia() {
                       <React.Fragment key={turno}>
                         <tr className="bg-muted/50 border-b border-border">
                           <td colSpan={5} className="px-4 py-1.5">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{turno}</span>
-                            <span className="ml-2 text-xs text-muted-foreground/60">({rows.length})</span>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              {turno}
+                            </span>
+                            <span className="ml-2 text-xs text-muted-foreground/60">
+                              ({rows.length})
+                            </span>
                           </td>
                         </tr>
                         {rows.map((r) => (
-                          <tr key={r.colaborador_id} className="border-b border-border/50 hover:bg-muted/20">
+                          <tr
+                            key={r.colaborador_id}
+                            className="border-b border-border/50 hover:bg-muted/20"
+                          >
                             <td className="px-4 py-2">
                               <div className="flex items-center gap-2">
-                                <Avatar nombre={r.nombre} apellido={r.apellido} fotoPerfil={r.foto_perfil} size="sm" />
+                                <Avatar
+                                  nombre={r.nombre}
+                                  apellido={r.apellido}
+                                  fotoPerfil={r.foto_perfil}
+                                  size="sm"
+                                />
                                 <span className="font-medium">{r.fullname}</span>
                               </div>
                             </td>
-                            <td className="px-3 py-2 text-muted-foreground">{r.numero_empleado ?? "—"}</td>
+                            <td className="px-3 py-2 text-muted-foreground">
+                              {r.numero_empleado ?? "—"}
+                            </td>
                             <td className="px-3 py-2 text-muted-foreground">{r.puesto ?? "—"}</td>
                             <td className="px-3 py-2">
                               {!r.estado ? (
-                                <span className="text-muted-foreground">{t("asistencia:noRecord")}</span>
+                                <span className="text-muted-foreground">
+                                  {t("asistencia:noRecord")}
+                                </span>
                               ) : r.estado === "Presente" ? (
-                                <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">{t("asistencia:present")}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                                  {t("asistencia:present")}
+                                </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">{r.tipo_inasistencia ?? t("asistencia:absence")}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+                                  {r.tipo_inasistencia ?? t("asistencia:absence")}
+                                </span>
                               )}
                             </td>
                             <td className="px-3 py-2">
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() => registrarMutation.mutate({ persona_id: r.colaborador_id, estado: "Presente" })}
-                                  className={cn("px-2.5 py-1 text-xs rounded-md border transition-colors", r.estado === "Presente" ? "bg-green-500 text-white border-green-500" : "border-green-500 text-green-600 hover:bg-green-50")}
+                                  onClick={() =>
+                                    registrarMutation.mutate({
+                                      persona_id: r.colaborador_id,
+                                      estado: "Presente",
+                                    })
+                                  }
+                                  className={cn(
+                                    "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                                    r.estado === "Presente"
+                                      ? "bg-green-500 text-white border-green-500"
+                                      : "border-green-500 text-green-600 hover:bg-green-50",
+                                  )}
                                 >
                                   {t("asistencia:present")}
                                 </button>
                                 <button
                                   onClick={() => abrirModal(r)}
-                                  className={cn("px-2.5 py-1 text-xs rounded-md border transition-colors", r.estado === "Inasistencia" ? "bg-red-500 text-white border-red-500" : "border-red-400 text-red-500 hover:bg-red-50")}
+                                  className={cn(
+                                    "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                                    r.estado === "Inasistencia"
+                                      ? "bg-red-500 text-white border-red-500"
+                                      : "border-red-400 text-red-500 hover:bg-red-50",
+                                  )}
                                 >
                                   {t("asistencia:absence")}
                                 </button>
@@ -393,7 +505,9 @@ export default function Asistencia() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-sm font-medium block mb-1.5">{t("asistencia:absenceType")}</label>
+                <label className="text-sm font-medium block mb-1.5">
+                  {t("asistencia:absenceType")}
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   {TIPOS_INASISTENCIA.map((t) => (
                     <button
@@ -403,7 +517,7 @@ export default function Asistencia() {
                         "px-3 py-2 text-xs rounded-md border text-left transition-colors",
                         tipoSel === t.code
                           ? "bg-primary text-primary-foreground border-primary"
-                          : "border-border hover:bg-muted"
+                          : "border-border hover:bg-muted",
                       )}
                     >
                       <span className="font-bold">{t.code}</span>
@@ -423,7 +537,10 @@ export default function Asistencia() {
               </div>
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">
-              <button onClick={() => setModal(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors">
+              <button
+                onClick={() => setModal(null)}
+                className="px-4 py-2 text-sm rounded-md border border-border hover:bg-muted transition-colors"
+              >
                 {t("cancel")}
               </button>
               <button

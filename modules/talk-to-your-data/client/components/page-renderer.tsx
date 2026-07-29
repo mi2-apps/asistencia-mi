@@ -6,17 +6,42 @@
 // ── TEMPLATE: the only app-specific things are the @client imports. KpiCard / SectionCard /
 //    CHART_COLORS etc. are MI-stack components you already have. If yours differ, swap the
 //    imports + the wrapper JSX; the block-shape logic stays the same. ──
-import {
-  ResponsiveContainer, ComposedChart, BarChart, LineChart, PieChart,
-  Bar, Line, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-} from "recharts";
+
 import { KpiCard } from "@client/components/kpi-card";
 import { SectionCard } from "@client/components/layout";
-import { CHART_COLORS, AXIS_TICK, TOOLTIP_STYLE, GRID_STYLE, LEGEND_STYLE } from "@client/lib/chart-theme";
-import { fmtInt, fmtUsd, fmtPct } from "@client/lib/utils";
+import {
+  AXIS_TICK,
+  CHART_COLORS,
+  GRID_STYLE,
+  LEGEND_STYLE,
+  TOOLTIP_STYLE,
+} from "@client/lib/chart-theme";
 import type { ResolvedBlock, ValueFormat } from "@client/lib/page-spec";
+import { fmtInt, fmtPct, fmtUsd } from "@client/lib/utils";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-const EXT = [...CHART_COLORS, "hsl(328 73% 62%)", "hsl(60 80% 55%)", "hsl(24 90% 55%)", "hsl(280 60% 60%)"];
+const EXT = [
+  ...CHART_COLORS,
+  "hsl(328 73% 62%)",
+  "hsl(60 80% 55%)",
+  "hsl(24 90% 55%)",
+  "hsl(280 60% 60%)",
+];
 
 function fmt(v: unknown, f?: ValueFormat): string {
   const n = typeof v === "number" ? v : Number(v);
@@ -43,7 +68,9 @@ export function RenderBlock({ block }: { block: ResolvedBlock }) {
     // Plain text only — render line-by-line, no HTML injection.
     return (
       <SectionCard title={block.title || ""}>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{block.md}</div>
+        <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+          {block.md}
+        </div>
       </SectionCard>
     );
   }
@@ -51,8 +78,12 @@ export function RenderBlock({ block }: { block: ResolvedBlock }) {
   if (block.kind === "kpi") {
     const row = (Array.isArray(block.data) ? block.data[0] : block.data) ?? {};
     return (
-      <KpiCard title={block.title || block.valueKey || ""} value={fmt(row[block.valueKey ?? ""], block.format)}
-               subtitle={block.subtitle} glow={block.glow ?? "blue"} />
+      <KpiCard
+        title={block.title || block.valueKey || ""}
+        value={fmt(row[block.valueKey ?? ""], block.format)}
+        subtitle={block.subtitle}
+        glow={block.glow ?? "blue"}
+      />
     );
   }
 
@@ -62,7 +93,12 @@ export function RenderBlock({ block }: { block: ResolvedBlock }) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {cards.map((c, i) => (
-          <KpiCard key={i} title={c.label} value={fmt(row[c.valueKey], c.format)} glow={c.glow ?? "blue"} />
+          <KpiCard
+            key={i}
+            title={c.label}
+            value={fmt(row[c.valueKey], c.format)}
+            glow={c.glow ?? "blue"}
+          />
         ))}
       </div>
     );
@@ -75,13 +111,28 @@ export function RenderBlock({ block }: { block: ResolvedBlock }) {
       <SectionCard title={block.title || ""} scrollable>
         <table className="data-table">
           <thead>
-            <tr>{cols.map((c) => <th key={c.key} className={c.align === "right" ? "text-right" : ""}>{c.label ?? c.key}</th>)}</tr>
+            <tr>
+              {cols.map((c) => (
+                <th key={c.key} className={c.align === "right" ? "text-right" : ""}>
+                  {c.label ?? c.key}
+                </th>
+              ))}
+            </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={i}>
                 {cols.map((c) => (
-                  <td key={c.key} className={c.align === "right" ? "text-right tabular-nums" : (c.format && c.format !== "text" ? "tabular-nums" : "")}>
+                  <td
+                    key={c.key}
+                    className={
+                      c.align === "right"
+                        ? "text-right tabular-nums"
+                        : c.format && c.format !== "text"
+                          ? "tabular-nums"
+                          : ""
+                    }
+                  >
                     {fmt(r[c.key], c.format)}
                   </td>
                 ))}
@@ -105,8 +156,16 @@ export function RenderBlock({ block }: { block: ResolvedBlock }) {
     chart = (
       <PieChart>
         <Tooltip contentStyle={TOOLTIP_STYLE} />
-        <Pie data={rows} dataKey={s?.key ?? "value"} nameKey={block.xKey ?? "name"} outerRadius="80%" label>
-          {rows.map((_, i) => <Cell key={i} fill={EXT[i % EXT.length]} />)}
+        <Pie
+          data={rows}
+          dataKey={s?.key ?? "value"}
+          nameKey={block.xKey ?? "name"}
+          outerRadius="80%"
+          label
+        >
+          {rows.map((_, i) => (
+            <Cell key={i} fill={EXT[i % EXT.length]} />
+          ))}
         </Pie>
       </PieChart>
     );
@@ -118,7 +177,16 @@ export function RenderBlock({ block }: { block: ResolvedBlock }) {
         <YAxis tick={AXIS_TICK} width={56} />
         <Tooltip contentStyle={TOOLTIP_STYLE} />
         <Legend wrapperStyle={LEGEND_STYLE} />
-        {series.map((s, i) => <Line key={s.key} dataKey={s.key} name={s.label ?? s.key} stroke={color(i, s.color)} dot={false} strokeWidth={2} />)}
+        {series.map((s, i) => (
+          <Line
+            key={s.key}
+            dataKey={s.key}
+            name={s.label ?? s.key}
+            stroke={color(i, s.color)}
+            dot={false}
+            strokeWidth={2}
+          />
+        ))}
       </LineChart>
     );
   } else {
@@ -130,14 +198,24 @@ export function RenderBlock({ block }: { block: ResolvedBlock }) {
         <YAxis tick={AXIS_TICK} width={56} />
         <Tooltip contentStyle={TOOLTIP_STYLE} />
         <Legend wrapperStyle={LEGEND_STYLE} />
-        {series.map((s, i) => <Bar key={s.key} dataKey={s.key} name={s.label ?? s.key} fill={color(i, s.color)} radius={[2, 2, 0, 0]} />)}
+        {series.map((s, i) => (
+          <Bar
+            key={s.key}
+            dataKey={s.key}
+            name={s.label ?? s.key}
+            fill={color(i, s.color)}
+            radius={[2, 2, 0, 0]}
+          />
+        ))}
       </Chart>
     );
   }
 
   return (
     <SectionCard title={block.title || ""}>
-      <ResponsiveContainer width="100%" height={h}>{chart}</ResponsiveContainer>
+      <ResponsiveContainer width="100%" height={h}>
+        {chart}
+      </ResponsiveContainer>
     </SectionCard>
   );
 }
@@ -146,7 +224,9 @@ export function RenderBlock({ block }: { block: ResolvedBlock }) {
 export function RenderBlocks({ blocks }: { blocks: ResolvedBlock[] }) {
   return (
     <div className="space-y-4">
-      {blocks.map((b, i) => <RenderBlock key={i} block={b} />)}
+      {blocks.map((b, i) => (
+        <RenderBlock key={i} block={b} />
+      ))}
     </div>
   );
 }

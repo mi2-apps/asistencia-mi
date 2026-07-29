@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 
 const LANGS = [
   { code: "es-MX", label: "ES" },
-  { code: "en",    label: "EN" },
+  { code: "en", label: "EN" },
   { code: "zh-CN", label: "中文" },
 ];
 

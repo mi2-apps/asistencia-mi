@@ -1,17 +1,17 @@
+import { Combobox } from "@client/components/ui/Combobox";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DEPARTAMENTOS_LIST, PUESTOS_LIST, TURNOS } from "@shared/constants";
+import type { ColaboradorInput } from "@shared/validators";
+import { colaboradorSchema } from "@shared/validators";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { Combobox } from "@client/components/ui/Combobox";
-import { DEPARTAMENTOS_LIST, PUESTOS_LIST, TURNOS } from "@shared/constants";
-import { colaboradorSchema } from "@shared/validators";
-import type { ColaboradorInput } from "@shared/validators";
+import { useLocation } from "wouter";
 
 export default function AgregarColaborador() {
   const [, navigate] = useLocation();
-  const [foto, setFoto]     = useState<File | null>(null);
+  const [foto, setFoto] = useState<File | null>(null);
   const qc = useQueryClient();
   const { t } = useTranslation();
 
@@ -85,7 +85,11 @@ export default function AgregarColaborador() {
           <Field label={t("turno")} error={form.formState.errors.turno?.message}>
             <select {...form.register("turno")} className={inputCls}>
               <option value="">{t("selectTurno")}</option>
-              {TURNOS.map((t) => <option key={t} value={t}>{t}</option>)}
+              {TURNOS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label={t("noEmpleado")} error={form.formState.errors.numero_empleado?.message}>
@@ -131,9 +135,18 @@ export default function AgregarColaborador() {
   );
 }
 
-const inputCls = "w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring h-10";
+const inputCls =
+  "w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring h-10";
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <label className="text-sm font-medium block mb-1.5">{label}</label>

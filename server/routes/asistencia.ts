@@ -1,10 +1,10 @@
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { Router } from "express";
-import { sql, eq, and, gte, lte } from "drizzle-orm";
-import { db, pool } from "../db.js";
 import { asistencia, colaboradores } from "../../shared/schema.js";
 import { asistenciaSchema } from "../../shared/validators.js";
-import { requireAuth, requireModulo, getAllowedDepts, validateBody } from "../middleware/auth.js";
+import { db, pool } from "../db.js";
 import type { AuthUser } from "../middleware/auth.js";
+import { getAllowedDepts, requireAuth, requireModulo, validateBody } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -18,9 +18,13 @@ router.get("/reporte", requireAuth, requireModulo("asistencia"), async (req, res
       return res.json({ success: true, reporte: [] });
     }
 
-    const deptsFilter = depts === null
-      ? sql``
-      : sql`AND c.departamento IN (${sql.join(depts.map((d) => sql`${d}`), sql`, `)})`;
+    const deptsFilter =
+      depts === null
+        ? sql``
+        : sql`AND c.departamento IN (${sql.join(
+            depts.map((d) => sql`${d}`),
+            sql`, `,
+          )})`;
 
     const rows = await db.execute(sql`
       SELECT
@@ -56,7 +60,9 @@ router.get("/semana", requireAuth, requireModulo("historial"), async (req, res, 
   try {
     const { inicio, fin } = req.query;
     if (!inicio || !fin) {
-      return res.status(400).json({ success: false, message: "Se requieren inicio y fin (YYYY-MM-DD)" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Se requieren inicio y fin (YYYY-MM-DD)" });
     }
 
     const [rows, bajasResult] = await Promise.all([
@@ -101,16 +107,16 @@ router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, n
   let client;
   try {
     client = await pool.connect();
-    const data      = asistenciaSchema.parse(req.body);
-    const col       = data.persona_tipo === "usuario" ? "usuario_id" : "colaborador_id";
-    const estadoDB  = data.estado.toLowerCase();
-    const username  = (req.user as { username: string }).username;
+    const data = asistenciaSchema.parse(req.body);
+    const col = data.persona_tipo === "usuario" ? "usuario_id" : "colaborador_id";
+    const estadoDB = data.estado.toLowerCase();
+    const username = (req.user as { username: string }).username;
 
     await client.query("BEGIN");
 
     const existe = await client.query(
       `SELECT id, edit_count FROM asistencia WHERE ${col} = $1 AND fecha = $2 FOR UPDATE`,
-      [data.persona_id, data.fecha]
+      [data.persona_id, data.fecha],
     );
 
     let row;
@@ -129,7 +135,7 @@ router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, n
             SET estado=$1, tipo_inasistencia=$2, notas=$3, registrado_por=$4, edit_count=edit_count+1
           WHERE id=$5
          RETURNING *`,
-        [estadoDB, data.tipo_inasistencia ?? null, data.notas ?? null, username, existe.rows[0].id]
+        [estadoDB, data.tipo_inasistencia ?? null, data.notas ?? null, username, existe.rows[0].id],
       );
       row = r.rows[0];
     } else {
@@ -137,7 +143,14 @@ router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, n
         `INSERT INTO asistencia (${col}, fecha, estado, tipo_inasistencia, notas, registrado_por)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [data.persona_id, data.fecha, estadoDB, data.tipo_inasistencia ?? null, data.notas ?? null, username]
+        [
+          data.persona_id,
+          data.fecha,
+          estadoDB,
+          data.tipo_inasistencia ?? null,
+          data.notas ?? null,
+          username,
+        ],
       );
       row = r.rows[0];
     }
@@ -155,7 +168,9 @@ router.post("/", requireAuth, validateBody(asistenciaSchema), async (req, res, n
 // DELETE /api/v1/asistencia/hoy — clear today's attendance (admin only)
 router.delete("/hoy", requireAuth, async (_req, res, next) => {
   try {
-    await db.execute(sql`DELETE FROM asistencia WHERE fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date`);
+    await db.execute(
+      sql`DELETE FROM asistencia WHERE fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date`,
+    );
     res.status(204).send();
   } catch (err) {
     next(err);

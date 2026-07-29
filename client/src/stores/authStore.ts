@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return false;
     if (user.role === "admin") return true;
-    return !!(user.permisos?.[modulo]);
+    return !!user.permisos?.[modulo];
   },
   /**
    * null  → sin restricción (admin o wildcard "*")

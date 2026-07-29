@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { FileCode } from "lucide-react";
 import { cn } from "@client/lib/utils";
+import { FileCode } from "lucide-react";
+import { useState } from "react";
 
 const SECTIONS = [
   {
@@ -309,7 +309,9 @@ export default function DeveloperManual() {
       <aside className="w-52 flex-shrink-0">
         <div className="flex items-center gap-2 mb-4">
           <FileCode size={15} className="text-muted-foreground" />
-          <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">Secciones</span>
+          <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">
+            Secciones
+          </span>
         </div>
         <nav className="space-y-0.5">
           {SECTIONS.map((s) => (
@@ -320,7 +322,7 @@ export default function DeveloperManual() {
                 "w-full text-left text-sm px-3 py-2 rounded-md transition-colors",
                 activeSection === s.id
                   ? "bg-primary text-primary-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
               {s.title}

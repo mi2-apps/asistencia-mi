@@ -15,11 +15,11 @@ export interface ColaboradorBajaPDF {
   dado_de_baja_por: string | null;
 }
 
-const NAVY  = [27,  58,  107] as [number, number, number];
-const GRAY  = [107, 114, 128] as [number, number, number];
+const NAVY = [27, 58, 107] as [number, number, number];
+const GRAY = [107, 114, 128] as [number, number, number];
 const LIGHT = [249, 250, 251] as [number, number, number];
 
-const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
@@ -48,19 +48,22 @@ function iniciales(nombre: string, apellido: string): string {
 
 function logo64(url: string): Promise<string> {
   return fetch(url)
-    .then(r => r.blob())
-    .then(blob => new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    }));
+    .then((r) => r.blob())
+    .then(
+      (blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        }),
+    );
 }
 
 export async function generarPDFBaja(c: ColaboradorBajaPDF) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const W = doc.internal.pageSize.getWidth();   // 210
-  const H = doc.internal.pageSize.getHeight();  // 297
+  const W = doc.internal.pageSize.getWidth(); // 210
+  const H = doc.internal.pageSize.getHeight(); // 297
   const L = 18;
   const R = W - L;
 
@@ -79,7 +82,7 @@ export async function generarPDFBaja(c: ColaboradorBajaPDF) {
 
   // ── Fecha de elaboración ──────────────────────────────────────────────────
   const hoy = new Date();
-  const fechaElab = `${String(hoy.getDate()).padStart(2,"0")}/${String(hoy.getMonth()+1).padStart(2,"0")}/${hoy.getFullYear()}`;
+  const fechaElab = `${String(hoy.getDate()).padStart(2, "0")}/${String(hoy.getMonth() + 1).padStart(2, "0")}/${hoy.getFullYear()}`;
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...GRAY);
@@ -134,9 +137,9 @@ export async function generarPDFBaja(c: ColaboradorBajaPDF) {
   let y = cy + cr + 30;
   const colW = (R - L) / 2;
   const campos = [
-    { label: "DEPARTAMENTO",   value: c.departamento },
-    { label: "TURNO",          value: c.turno ?? "—" },
-    { label: "NÚM. NÓMINA",   value: c.numero_empleado ?? "—" },
+    { label: "DEPARTAMENTO", value: c.departamento },
+    { label: "TURNO", value: c.turno ?? "—" },
+    { label: "NÚM. NÓMINA", value: c.numero_empleado ?? "—" },
     { label: "FECHA DE INGRESO", value: fmt(c.fecha_ingreso) },
   ];
   campos.forEach((campo, i) => {
@@ -241,7 +244,7 @@ export async function generarPDFBaja(c: ColaboradorBajaPDF) {
   sigs.forEach((label, i) => {
     const x1 = L + i * sigW + 6;
     const x2 = L + (i + 1) * sigW - 6;
-    const ly  = sigY + 22;
+    const ly = sigY + 22;
     doc.setDrawColor(170, 170, 170);
     doc.setLineWidth(0.3);
     doc.line(x1, ly, x2, ly);
@@ -255,10 +258,9 @@ export async function generarPDFBaja(c: ColaboradorBajaPDF) {
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(190, 190, 190);
-  doc.text(
-    "Documento generado automáticamente por QualityHub • MI Technologies",
-    W / 2, H - 8, { align: "center" },
-  );
+  doc.text("Documento generado automáticamente por QualityHub • MI Technologies", W / 2, H - 8, {
+    align: "center",
+  });
 
   doc.save(`Baja_${c.nombre}_${c.apellido}_${c.fecha_baja ?? "sin-fecha"}.pdf`);
 }

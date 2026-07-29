@@ -8,12 +8,13 @@
 // ── TEMPLATE: the ONLY app-specific things here are (1) FILTER_PAGES, (2) the set_filters
 //    filter property list, and (3) SYSTEM_PROMPT. Everything else (the robustness machinery)
 //    is generic and battle-tested — keep it. ──
-import { client, MODELS, AGENT_MAX_ITERATIONS } from "./openrouter.js";
-import { runAgentSql } from "./sql-guard.js";
-import { SCHEMA_CARD, describeTable, listTables } from "./schema-card.js";
-import { validateBlock, resolveBlock, type Block } from "./blocks.js";
+
+import { type Block, resolveBlock, validateBlock } from "./blocks.js";
+import { AGENT_MAX_ITERATIONS, client, MODELS } from "./openrouter.js";
 import { createPage } from "./pages-store.js";
 import { checkPageRender } from "./render-check.js"; // post-create render verification (see README §Render-check)
+import { describeTable, listTables, SCHEMA_CARD } from "./schema-card.js";
+import { runAgentSql } from "./sql-guard.js";
 
 export type AgentEvent =
   | { type: "token"; text: string }
@@ -40,13 +41,42 @@ const BLOCK_SCHEMA = {
     subtitle: { type: "string" },
     cards: {
       type: "array",
-      items: { type: "object", properties: { label: { type: "string" }, valueKey: { type: "string" }, format: { type: "string" }, glow: { type: "string" } } },
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string" },
+          valueKey: { type: "string" },
+          format: { type: "string" },
+          glow: { type: "string" },
+        },
+      },
     },
     chartType: { type: "string", enum: ["bar", "line", "composed", "pie"] },
     xKey: { type: "string" },
-    series: { type: "array", items: { type: "object", properties: { key: { type: "string" }, label: { type: "string" }, color: { type: "string" } } } },
+    series: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          label: { type: "string" },
+          color: { type: "string" },
+        },
+      },
+    },
     height: { type: "number" },
-    columns: { type: "array", items: { type: "object", properties: { key: { type: "string" }, label: { type: "string" }, format: { type: "string" }, align: { type: "string" } } } },
+    columns: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          label: { type: "string" },
+          format: { type: "string" },
+          align: { type: "string" },
+        },
+      },
+    },
     md: { type: "string" },
   },
   required: ["kind"],
@@ -57,7 +87,8 @@ const TOOLS = [
     type: "function",
     function: {
       name: "run_sql",
-      description: "Run a read-only SELECT against the database and get the rows back so you can reason about / answer with the data. Always use a reasonable LIMIT.",
+      description:
+        "Run a read-only SELECT against the database and get the rows back so you can reason about / answer with the data. Always use a reasonable LIMIT.",
       parameters: { type: "object", properties: { sql: { type: "string" } }, required: ["sql"] },
     },
   },
@@ -65,7 +96,8 @@ const TOOLS = [
     type: "function",
     function: {
       name: "list_tables",
-      description: "List all queryable tables in the database. Use this instead of asking the user what exists.",
+      description:
+        "List all queryable tables in the database. Use this instead of asking the user what exists.",
       parameters: { type: "object", properties: {} },
     },
   },
@@ -73,7 +105,8 @@ const TOOLS = [
     type: "function",
     function: {
       name: "describe_schema",
-      description: "Get authoritative column names + types for a table (live from the database). Pass a table name. Omit to get the schema overview + table list. Use this — never ask the user about columns.",
+      description:
+        "Get authoritative column names + types for a table (live from the database). Pass a table name. Omit to get the schema overview + table list. Use this — never ask the user about columns.",
       parameters: { type: "object", properties: { table: { type: "string" } } },
     },
   },
@@ -81,7 +114,8 @@ const TOOLS = [
     type: "function",
     function: {
       name: "render_block",
-      description: "Render ONE visual inline in the chat (kpi/kpis/chart/table/markdown). MINIMAL INPUT: just {kind, sql} — the server runs the SQL and AUTO-INFERS chart axes (xKey/series), table columns, and KPI value from the result columns (pass them only to override). You do NOT need the rows back. ALWAYS use this when the user asks for a graph/chart/KPI/table/'show'/'visualize' — never answer a visual request with prose alone.",
+      description:
+        "Render ONE visual inline in the chat (kpi/kpis/chart/table/markdown). MINIMAL INPUT: just {kind, sql} — the server runs the SQL and AUTO-INFERS chart axes (xKey/series), table columns, and KPI value from the result columns (pass them only to override). You do NOT need the rows back. ALWAYS use this when the user asks for a graph/chart/KPI/table/'show'/'visualize' — never answer a visual request with prose alone.",
       parameters: BLOCK_SCHEMA,
     },
   },
@@ -89,7 +123,8 @@ const TOOLS = [
     type: "function",
     function: {
       name: "create_page",
-      description: "Create a temporary shareable landing page and give the user its link. BEST FLOW: render_block each visual FIRST, then call create_page — if you omit 'blocks' it reuses the visuals you just rendered this turn. Always pass a 'title'. When you give the user the link, use the EXACT 'url' returned (full canonical https link) — never invent or change the domain. Pages render LIVE and expire (default 30 days, or 7).",
+      description:
+        "Create a temporary shareable landing page and give the user its link. BEST FLOW: render_block each visual FIRST, then call create_page — if you omit 'blocks' it reuses the visuals you just rendered this turn. Always pass a 'title'. When you give the user the link, use the EXACT 'url' returned (full canonical https link) — never invent or change the domain. Pages render LIVE and expire (default 30 days, or 7).",
       parameters: {
         type: "object",
         properties: {
@@ -106,7 +141,8 @@ const TOOLS = [
     type: "function",
     function: {
       name: "set_filters",
-      description: "Navigate the user's dashboard to an existing page with filters applied (drives the on-screen data). filters are URL query params.",
+      description:
+        "Navigate the user's dashboard to an existing page with filters applied (drives the on-screen data). filters are URL query params.",
       // NOTE: use EXPLICIT string properties (NOT additionalProperties) — Gemini's
       // function-calling schema rejects additionalProperties, which makes the whole request
       // fail with finish_reason=error. __EDIT__ the property list to YOUR app's real filters.
@@ -246,7 +282,11 @@ async function synthesize(messages: any[]): Promise<{ text: string; cost: number
           model,
           messages: [
             ...messages,
-            { role: "user", content: "Stop using tools. Using ONLY the query results already gathered above, write the final answer now — a clear, concise summary. If some data was missing or a query failed, state what is known and call out the gaps explicitly." },
+            {
+              role: "user",
+              content:
+                "Stop using tools. Using ONLY the query results already gathered above, write the final answer now — a clear, concise summary. If some data was missing or a query failed, state what is known and call out the gaps explicitly.",
+            },
           ],
           temperature: 0.2,
           max_tokens: 2200,
@@ -273,19 +313,32 @@ export async function runAgent(opts: {
 }): Promise<AgentResult> {
   if (!client) throw new Error("OpenRouter not configured");
   const { message, owner } = opts;
-  const LANG_NAME: Record<string, string> = { en: "English", "es-MX": "Spanish (es-MX)", "zh-CN": "Mandarin Chinese (zh-CN)" };
+  const LANG_NAME: Record<string, string> = {
+    en: "English",
+    "es-MX": "Spanish (es-MX)",
+    "zh-CN": "Mandarin Chinese (zh-CN)",
+  };
   const uiLang = LANG_NAME[opts.lang ?? ""] ?? "English";
   // Track whether the turn produced any user-visible output or surfaced an error, so we
   // never end on silence (the original "stuck/no answer" symptom).
   let produced = false;
   let errored = false;
   const emit = (e: AgentEvent) => {
-    if ((e.type === "token" && e.text) || e.type === "block" || e.type === "page" || e.type === "action") produced = true;
+    if (
+      (e.type === "token" && e.text) ||
+      e.type === "block" ||
+      e.type === "page" ||
+      e.type === "action"
+    )
+      produced = true;
     if (e.type === "error") errored = true;
     opts.emit(e);
   };
   const messages: any[] = [
-    { role: "system", content: `${SYSTEM_PROMPT}\n\nUI locale (default reply language if the user's message language is unclear): ${uiLang}.` },
+    {
+      role: "system",
+      content: `${SYSTEM_PROMPT}\n\nUI locale (default reply language if the user's message language is unclear): ${uiLang}.`,
+    },
     ...(opts.history ?? []).filter((m) => m.role !== "system"),
     { role: "user", content: message },
   ];
@@ -306,28 +359,52 @@ export async function runAgent(opts: {
     }
     cost += Number(resp?.usage?.cost ?? 0);
     const msg = resp?.choices?.[0]?.message;
-    if (!msg) { emit({ type: "error", message: "empty model response" }); break; }
+    if (!msg) {
+      emit({ type: "error", message: "empty model response" });
+      break;
+    }
     messages.push(msg);
 
     const toolCalls = msg.tool_calls ?? [];
-    console.log(`[chat] iter ${iter} model=${resp?.model ?? "?"} finish=${resp?.choices?.[0]?.finish_reason ?? "?"} tools=${toolCalls.length} content=${msg.content ? msg.content.length + "ch" : "0"} cost=$${cost.toFixed(5)}`);
+    console.log(
+      `[chat] iter ${iter} model=${resp?.model ?? "?"} finish=${resp?.choices?.[0]?.finish_reason ?? "?"} tools=${toolCalls.length} content=${msg.content ? msg.content.length + "ch" : "0"} cost=$${cost.toFixed(5)}`,
+    );
     if (msg.content) emit({ type: "token", text: msg.content });
 
-    if (!toolCalls.length) { concluded = true; break; } // natural final answer
+    if (!toolCalls.length) {
+      concluded = true;
+      break;
+    } // natural final answer
 
     for (const tc of toolCalls) {
       const name = tc.function?.name;
       let args: any = {};
-      try { args = JSON.parse(tc.function?.arguments || "{}"); } catch { /* ignore */ }
-      emit({ type: "tool", name, status: "start", detail: name === "run_sql" ? String(args.sql ?? "").slice(0, 200) : undefined });
-      console.log(`[chat] tool=${name} args=${(name === "run_sql" ? String(args.sql ?? "") : JSON.stringify(args)).replace(/\s+/g, " ").slice(0, 240)}`);
+      try {
+        args = JSON.parse(tc.function?.arguments || "{}");
+      } catch {
+        /* ignore */
+      }
+      emit({
+        type: "tool",
+        name,
+        status: "start",
+        detail: name === "run_sql" ? String(args.sql ?? "").slice(0, 200) : undefined,
+      });
+      console.log(
+        `[chat] tool=${name} args=${(name === "run_sql" ? String(args.sql ?? "") : JSON.stringify(args)).replace(/\s+/g, " ").slice(0, 240)}`,
+      );
       let toolResult: any;
       try {
         if (name === "run_sql") {
           const r = await runAgentSql(String(args.sql ?? ""));
           sqlLog.push({ sql: r.sql, rowCount: r.rowCount });
           toolResult = { rowCount: r.rowCount, truncated: r.truncated, rows: r.rows };
-          emit({ type: "tool", name, status: "done", detail: `${r.rowCount} rows${r.truncated ? " (capped)" : ""}` });
+          emit({
+            type: "tool",
+            name,
+            status: "done",
+            detail: `${r.rowCount} rows${r.truncated ? " (capped)" : ""}`,
+          });
         } else if (name === "list_tables") {
           toolResult = { tables: await listTables() };
           emit({ type: "tool", name, status: "done" });
@@ -339,18 +416,30 @@ export async function runAgent(opts: {
         } else if (name === "render_block") {
           const block = validateBlock(args);
           const resolved = await resolveBlock(block);
-          if (block.sql) sqlLog.push({ sql: block.sql, rowCount: resolved.rowCount, error: resolved.error });
+          if (block.sql)
+            sqlLog.push({ sql: block.sql, rowCount: resolved.rowCount, error: resolved.error });
           emit({ type: "block", block: resolved });
           // SELF-CHECK: a visual is only "ready" if it ran AND returned rows.
           const ready = !resolved.error && resolved.rowCount > 0;
           if (ready) renderedBlocks.push(block); // only reuse good blocks in a later create_page
           toolResult = {
-            ok: ready, rowCount: resolved.rowCount, error: resolved.error,
-            hint: ready ? undefined
-              : resolved.error ? "This block FAILED — fix the SQL and render_block again before you finish."
-              : "This block returned 0 ROWS — it would show empty. Fix the query/filter and render_block again; do NOT present an empty visual as the answer.",
+            ok: ready,
+            rowCount: resolved.rowCount,
+            error: resolved.error,
+            hint: ready
+              ? undefined
+              : resolved.error
+                ? "This block FAILED — fix the SQL and render_block again before you finish."
+                : "This block returned 0 ROWS — it would show empty. Fix the query/filter and render_block again; do NOT present an empty visual as the answer.",
           };
-          emit({ type: "tool", name, status: "done", detail: resolved.error ? `error: ${resolved.error}` : `${resolved.rowCount} rows${ready ? "" : " (EMPTY)"}` });
+          emit({
+            type: "tool",
+            name,
+            status: "done",
+            detail: resolved.error
+              ? `error: ${resolved.error}`
+              : `${resolved.rowCount} rows${ready ? "" : " (EMPTY)"}`,
+          });
         } else if (name === "create_page") {
           // Models (esp. cheap ones) often call create_page with empty/partial args. Fall back to the
           // blocks already rendered this turn so a page still builds; default a title; guide if truly empty.
@@ -360,23 +449,73 @@ export async function runAgent(opts: {
           // SELF-VERIFY: only put blocks on the page that ran AND returned rows (no empty/errored visuals).
           const good = blocks.filter((_, i) => !resolved[i].error && resolved[i].rowCount > 0);
           if (!good.length) {
-            toolResult = { ok: false, error: "No usable blocks for the page (every block errored or returned 0 rows). FIRST render_block each chart/KPI/table and confirm it shows rows — THEN create_page (it reuses what you rendered). Fix any empty/failing query before retrying." };
-            emit({ type: "tool", name, status: "done", detail: "error: no usable blocks (guided)" });
+            toolResult = {
+              ok: false,
+              error:
+                "No usable blocks for the page (every block errored or returned 0 rows). FIRST render_block each chart/KPI/table and confirm it shows rows — THEN create_page (it reuses what you rendered). Fix any empty/failing query before retrying.",
+            };
+            emit({
+              type: "tool",
+              name,
+              status: "done",
+              detail: "error: no usable blocks (guided)",
+            });
           } else {
             const dropped = blocks.length - good.length;
             const title = args.title || "Report";
-            const page = await createPage({ title, subtitle: args.subtitle, blocks: good, owner, chatId: opts.chatId, expiresDays: args.expiresDays });
+            const page = await createPage({
+              title,
+              subtitle: args.subtitle,
+              blocks: good,
+              owner,
+              chatId: opts.chatId,
+              expiresDays: args.expiresDays,
+            });
             // VISUAL SELF-CHECK (optional but recommended): render the page in headless Chromium +
             // screenshot before presenting. Requires the 3 wiring steps in README (playwright dep,
             // Chromium in the image, the x-render-token SSO bypass). checkable=false => present anyway.
             const rc = await checkPageRender(page.slug);
             if (rc.checkable && !rc.ok) {
-              toolResult = { ok: false, slug: page.slug, error: `The page was created but FAILED its render check (${rc.jsError ? "JS error: " + rc.jsError : rc.errorBlocks + " error block(s) on the rendered page"}). Do NOT give the user this link. Simplify/fix the offending block and create_page again.` };
-              emit({ type: "tool", name, status: "done", detail: `render-check FAILED — link withheld` });
+              toolResult = {
+                ok: false,
+                slug: page.slug,
+                error: `The page was created but FAILED its render check (${rc.jsError ? "JS error: " + rc.jsError : rc.errorBlocks + " error block(s) on the rendered page"}). Do NOT give the user this link. Simplify/fix the offending block and create_page again.`,
+              };
+              emit({
+                type: "tool",
+                name,
+                status: "done",
+                detail: `render-check FAILED — link withheld`,
+              });
             } else {
-              emit({ type: "page", slug: page.slug, url: page.url, title, expiresAt: page.expiresAt });
-              toolResult = { ok: true, url: page.url, slug: page.slug, expiresAt: page.expiresAt, blocksUsed: good.length, renderVerified: rc.checkable && rc.ok, ...(dropped ? { blocksDropped: dropped, note: `${dropped} block(s) were empty/failed and left off the page` } : {}) };
-              emit({ type: "tool", name, status: "done", detail: rc.checkable && rc.ok ? `${page.url} (render ✓ ${rc.visuals} visuals)` : page.url });
+              emit({
+                type: "page",
+                slug: page.slug,
+                url: page.url,
+                title,
+                expiresAt: page.expiresAt,
+              });
+              toolResult = {
+                ok: true,
+                url: page.url,
+                slug: page.slug,
+                expiresAt: page.expiresAt,
+                blocksUsed: good.length,
+                renderVerified: rc.checkable && rc.ok,
+                ...(dropped
+                  ? {
+                      blocksDropped: dropped,
+                      note: `${dropped} block(s) were empty/failed and left off the page`,
+                    }
+                  : {}),
+              };
+              emit({
+                type: "tool",
+                name,
+                status: "done",
+                detail:
+                  rc.checkable && rc.ok ? `${page.url} (render ✓ ${rc.visuals} visuals)` : page.url,
+              });
             }
           }
         } else if (name === "set_filters") {
@@ -394,9 +533,18 @@ export async function runAgent(opts: {
       } catch (e: any) {
         toolResult = { error: String(e?.message ?? e) };
         console.error(`[chat] tool=${name} ERROR: ${String(e?.message ?? e).slice(0, 200)}`);
-        emit({ type: "tool", name, status: "done", detail: `error: ${String(e?.message ?? e).slice(0, 120)}` });
+        emit({
+          type: "tool",
+          name,
+          status: "done",
+          detail: `error: ${String(e?.message ?? e).slice(0, 120)}`,
+        });
       }
-      messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult).slice(0, 60_000) });
+      messages.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: JSON.stringify(toolResult).slice(0, 60_000),
+      });
     }
   }
 
@@ -411,9 +559,15 @@ export async function runAgent(opts: {
     }
     console.log(`[chat] forced synthesis -> ${syn.text ? syn.text.length + "ch" : "EMPTY"}`);
   }
-  if (!produced && !errored) emit({ type: "error", message: "The model returned an empty response. Please rephrase and try again." });
+  if (!produced && !errored)
+    emit({
+      type: "error",
+      message: "The model returned an empty response. Please rephrase and try again.",
+    });
   emit({ type: "done", cost });
-  console.log(`[chat] turn done concluded=${concluded} produced=${produced} errored=${errored} sql=${sqlLog.length} cost=$${cost.toFixed(5)}`);
+  console.log(
+    `[chat] turn done concluded=${concluded} produced=${produced} errored=${errored} sql=${sqlLog.length} cost=$${cost.toFixed(5)}`,
+  );
   // Drop the system prompt from the persisted history (re-added each turn).
   return { messages: messages.filter((m) => m.role !== "system"), cost, sqlLog };
 }

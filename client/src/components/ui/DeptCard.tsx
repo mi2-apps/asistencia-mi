@@ -24,14 +24,11 @@ export function DeptCard({ nombre, color, stats, onClick, className }: DeptCardP
         "w-full text-left rounded-xl border border-border bg-card shadow-sm",
         "hover:shadow-md hover:border-primary/30 active:scale-[0.98]",
         "transition-all duration-150 p-4 cursor-pointer",
-        className
+        className,
       )}
     >
       <div className="flex items-center gap-3 mb-3">
-        <div
-          className="w-3 h-3 rounded-full flex-shrink-0"
-          style={{ backgroundColor: color }}
-        />
+        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
         <span className="font-semibold text-sm leading-tight line-clamp-2">{nombre}</span>
       </div>
 
@@ -60,7 +57,12 @@ export function DeptCard({ nombre, color, stats, onClick, className }: DeptCardP
 
 function Pill({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", color)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+        color,
+      )}
+    >
       {label} <strong>{value}</strong>
     </span>
   );

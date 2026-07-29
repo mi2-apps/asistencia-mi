@@ -1,23 +1,23 @@
-import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import helmet from "helmet";
-import morgan from "morgan";
-import cors from "cors";
 import compression from "compression";
+import connectPgSimple from "connect-pg-simple";
+import cors from "cors";
+import express from "express";
 import { rateLimit } from "express-rate-limit";
 import session from "express-session";
+import helmet from "helmet";
+import morgan from "morgan";
 import passport from "passport";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db.js";
+import { startAgent } from "./agent.js";
 import { configurePassport } from "./auth/passport.js";
 import ssoRouter from "./auth/routes.js";
-import authRouter from "./routes/auth.js";
-import usuariosRouter from "./routes/usuarios.js";
-import colaboradoresRouter from "./routes/colaboradores.js";
+import { pool } from "./db.js";
 import asistenciaRouter from "./routes/asistencia.js";
+import authRouter from "./routes/auth.js";
+import colaboradoresRouter from "./routes/colaboradores.js";
 import tiempoExtraRouter from "./routes/tiempoExtra.js";
-import { startAgent } from "./agent.js";
+import usuariosRouter from "./routes/usuarios.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -56,7 +56,7 @@ app.use(
       httpOnly: true,
       maxAge: 8 * 60 * 60 * 1000, // 8 hours
     },
-  })
+  }),
 );
 
 // ── Passport SSO ──────────────────────────────────────────────────────────────
@@ -72,13 +72,13 @@ app.use("/auth", ssoRouter);
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) =>
-  res.json({ success: true, status: "ok", app: "asistencia-mi" })
+  res.json({ success: true, status: "ok", app: "asistencia-mi" }),
 );
-app.use("/api/v1/auth",          authRouter);
-app.use("/api/v1/usuarios",      usuariosRouter);
+app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/usuarios", usuariosRouter);
 app.use("/api/v1/colaboradores", colaboradoresRouter);
-app.use("/api/v1/asistencia",    asistenciaRouter);
-app.use("/api/v1/tiempo-extra",  tiempoExtraRouter);
+app.use("/api/v1/asistencia", asistenciaRouter);
+app.use("/api/v1/tiempo-extra", tiempoExtraRouter);
 
 // ── SPA fallback ──────────────────────────────────────────────────────────────
 const clientDir = path.resolve(__dirname, "../client");
@@ -88,11 +88,20 @@ app.get("*", (_req, res) => {
 });
 
 // ── Error handler ─────────────────────────────────────────────────────────────
-app.use((err: Error & { status?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const status = err.status ?? 500;
-  console.error("[error]", err.name, err.message, err.stack);
-  res.status(status).json({ success: false, message: err.message || "Error interno del servidor" });
-});
+app.use(
+  (
+    err: Error & { status?: number },
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    const status = err.status ?? 500;
+    console.error("[error]", err.name, err.message, err.stack);
+    res
+      .status(status)
+      .json({ success: false, message: err.message || "Error interno del servidor" });
+  },
+);
 
 // ── Auto-migrate: ensure schema is up-to-date ─────────────────────────────────
 async function runMigrations() {
@@ -112,13 +121,27 @@ async function runMigrations() {
         WHERE numero_empleado IS NOT NULL;
     `);
     await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos JSONB`);
-    await client.query(`ALTER TABLE asistencia ADD COLUMN IF NOT EXISTS registrado_por VARCHAR(60)`);
-    await client.query(`ALTER TABLE asistencia ADD COLUMN IF NOT EXISTS edit_count INTEGER NOT NULL DEFAULT 0`);
-    await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS dado_de_baja_por VARCHAR(60)`);
-    await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW()`);
-    await client.query(`CREATE INDEX IF NOT EXISTS asistencia_colaborador_fecha_idx ON asistencia (colaborador_id, fecha)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS colaboradores_activo_dept_idx ON colaboradores (activo, departamento)`);
-    await client.query(`UPDATE usuarios SET role = 'admin' WHERE username = 'leonel.hernandez' AND role != 'admin'`);
+    await client.query(
+      `ALTER TABLE asistencia ADD COLUMN IF NOT EXISTS registrado_por VARCHAR(60)`,
+    );
+    await client.query(
+      `ALTER TABLE asistencia ADD COLUMN IF NOT EXISTS edit_count INTEGER NOT NULL DEFAULT 0`,
+    );
+    await client.query(
+      `ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS dado_de_baja_por VARCHAR(60)`,
+    );
+    await client.query(
+      `ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW()`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS asistencia_colaborador_fecha_idx ON asistencia (colaborador_id, fecha)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS colaboradores_activo_dept_idx ON colaboradores (activo, departamento)`,
+    );
+    await client.query(
+      `UPDATE usuarios SET role = 'admin' WHERE username = 'leonel.hernandez' AND role != 'admin'`,
+    );
     console.log("[asistencia-mi] migrations ok");
   } catch (err) {
     console.error("[asistencia-mi] migration error", err);
